@@ -1,0 +1,42 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+  <title>Visualized Chrome History</title>
+  <link rel="stylesheet" href="assets/styles/bootstrap.min.css" />
+  <link rel="stylesheet" href="assets/styles/site.css" />
+  <script type="text/javascript" charset="utf-8" src="assets/timeline-api.js"></script>
+  <script type="text/javascript" charset="utf-8" src="assets/chrome_history.js"></script>
+</head>
+<body>
+  <div class="container container-fluid">
+    <div class="row-fluid">
+      <div id="search" class="span3">
+        <input type="search" id="search-field">
+        <input type="button" name="search" value="Search history" id="search-button">
+      </div>
+      <hv>
+      <div id="timeline" class="span9" style="height: 400px; border: 1px solid #aaa">
+      </div>
+    </div>
+    <hr>
+    <div class="row-fluid">
+      <div id="icon" class="span3">
+        <h3>Icon Cloud</h3>
+      </div>
+      <div id="result" class="span9">
+        <h3>Result</h3>
+        <ol>
+          <li class="entry">
+            <label class="entry-box" for="checkbox-0">
+              <div class="time"><input type="checkbox" id="checkbox-0">
+                3:22 PM
+              </div>
+                <a href="chrome-extension://bmbpioijbaifcbihbdckaodjodlekidi/history.html" id="id-0" target="_top" title="Visualized Chrome History">Visualized Chrome History</a>
+            </li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

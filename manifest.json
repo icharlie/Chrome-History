@@ -1,0 +1,13 @@
+{
+  "name": "Chrome History",
+  "version": "1.0",
+  "manifest_version": 2,
+  "description": "Visualized Chrome History",
+  "browser_action": {
+    "default_icon": "icon.png"
+  },
+  "options_page": "history.html",
+  "permissions": [
+    "history","bookmarks", "webRequest"
+  ]
+}
