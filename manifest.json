@@ -10,6 +10,6 @@
   },
   "options_page": "history.html",
   "permissions": [
-    "history","bookmarks", "webRequest"
+    "history","bookmarks"
   ]
 }

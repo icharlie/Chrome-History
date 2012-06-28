@@ -11,27 +11,64 @@
 <body>
   <div class="container container-fluid">
     <div class="row-fluid">
-      <div id="search" class="span3">
-        <input type="search" id="search-field">
-        <input type="button" name="search" value="Search history" id="search-button">
+      <div id="search" class="span3 right-line">
+<!--         <form id="serch-form" method="post" action class="search-field-container"> -->
+          <input type="search" id="search-field">
+          <input type="submit" name="search" value="Search history" id="search-button">
+<!--         </form> -->
+        <ol id="catalog" style="list-style:none;">
+          <li>
+            <input type="checkbox" name="gmail" value="gmail" id="gmail">
+            <label for="gmail">
+              <img src="assets/images/gmail.png"> Gmail</img>
+            </label>
+          </li>
+          <li>
+            <input type="checkbox" name="bookmarks" value="bookmarks" id="bookmarks">
+            <label for="bookmarks">
+              <img src="assets/images/bookmarks.png"> Bookmarks</img>
+            </label>
+          </li>
+          <li>
+            <input type="checkbox" name="calendar" value="calendar" id="calendar">
+            <label for="calendar">
+              <img src="assets/images/calendar.png"> Calendar</img>
+            </label>
+          </li>
+          <li>
+            <input type="checkbox" name="history" value="history" id="history">
+            <label for="history">
+              <img src="assets/images/history.png"> History</img>
+            </label>
+          </li>
+          <li>
+            <input type="checkbox" name="place" value="place" id="place">
+            <label for="place">
+              <img src="assets/images/place.png"> Place</img>
+            </label>
+          </li>
+          <li>
+            <input type="checkbox" name="contact" value="contact" id="contact">
+            <label for="contact">
+              <img src="assets/images/contact.png"> Contact</img>
+            </label>
+          </li>
+        </ol>
       </div>
       <hv>
-      <div id="timeline" class="span9" style="height: 400px; border: 1px solid #aaa">
+      <div id="timeline" class="span9">
       </div>
     </div>
     <hr>
     <div class="row-fluid">
-      <div id="icon" class="span3">
+      <div id="icon" class="span3 right-line">
         <h3>Icon Cloud</h3>
       </div>
       <div id="result" class="span9">
         <h3>Result</h3>
         <ol>
           <li class="entry">
-            <label class="entry-box" for="checkbox-0">
-              <div class="time"><input type="checkbox" id="checkbox-0">
                 3:22 PM
-              </div>
                 <a href="chrome-extension://bmbpioijbaifcbihbdckaodjodlekidi/history.html" id="id-0" target="_top" title="Visualized Chrome History">Visualized Chrome History</a>
             </li>
         </ol>
