@@ -44,6 +44,7 @@ hr {
 #timeline {
   height: 400px; 
   border: 1px solid #aaa;
+  margin-left: 0;
 }
 
 .right-line {

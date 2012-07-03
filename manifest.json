@@ -1,15 +1,21 @@
 {
   "name": "Chrome History",
   "version": "1.0",
-  "manifest_version": 2,
+  "manifest_version": 1,
   "description": "Visualized Chrome History",
-  "background": { "scripts": ["background.js"] },
+  "background": { 
+    "page": "background.html"
+  },
   "browser_action": {
     "default_icon": "icon.png",
     "default_title": "Chrome History"
   },
-  "options_page": "history.html",
   "permissions": [
-    "history","bookmarks"
+    "tabs", "history","bookmarks",
+    "https://apis.google.com/js/client.js",
+    "https://mail.google.com/feeds/*",
+    "https://www.google.com/accounts/OAuthGetRequestToken",
+    "https://www.google.com/accounts/OAuthAuthorizeToken",
+    "https://www.google.com/accounts/OAuthGetAccessToken"
   ]
 }

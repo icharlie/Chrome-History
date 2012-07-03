@@ -7,11 +7,57 @@
   <link rel="stylesheet" href="assets/styles/site.css" />
   <script type="text/javascript" charset="utf-8" src="assets/timeline-api.js"></script>
   <script type="text/javascript" charset="utf-8" src="assets/chrome_history.js"></script>
+  <script type="text/javascript" charset="utf-8" src="chrome_ex_oauthsimple.js"></script>
+  <script type="text/javascript" charset="utf-8" src="chrome_ex_oauth.js"></script>
+  <script type="text/javascript" charset="utf-8">
+
+  /* TODO: calendar
+  var url = 'https://www.google.com/calendar/feeds/default/private/full';
+  var bgPage = chrome.extension.getBackgroundPage();
+  bgPage.oauth.authorize(function() {
+      bgPage.oauth.sendSignedRequest(url,
+        function(resp, xhr) {
+          if (xhr.status != 200) {
+            console.log('error');
+          } else {
+            console.log('success');
+            console.log(resp);
+          }
+        }, {
+          'parameters' : {
+            'alt': 'json'
+          }
+        }
+      )});
+
+  */
+  /* TODO
+    var GMAIL_FEED = 'https://mail.google.com/mail/b/icharlie.osu@gmail.com/imap/';
+    // var GMAIL_FEED = 'https://mail.google.com/mail/feed/atom';
+    var bgPage = chrome.extension.getBackgroundPage();
+    bgPage.oauth.authorize(function() {
+      bgPage.oauth.sendSignedRequest(GMAIL_FEED,
+          function(resp, xhr) {
+            if (xhr.status != 200) {
+              console.log('error');
+              return;
+            }  else {
+              console.log('success');
+              console.log(resp);
+            }
+         }, {
+        'parameters': {
+          'alt': 'json',
+        }
+      });
+      });
+      */
+  </script>
 </head>
 <body>
   <div class="container container-fluid">
     <div class="row-fluid">
-      <div id="search" class="span3 right-line">
+      <div id="search" class="span2 right-line">
 <!--         <form id="serch-form" method="post" action class="search-field-container"> -->
           <input type="search" id="search-field">
           <input type="submit" name="search" value="Search history" id="search-button">
@@ -55,13 +101,12 @@
           </li>
         </ol>
       </div>
-      <hv>
-      <div id="timeline" class="span9">
+      <div id="timeline" class="span10">
       </div>
     </div>
     <hr>
     <div class="row-fluid">
-      <div id="icon" class="span3 right-line">
+      <div id="icon" class="span2 right-line">
         <h3>Icon Cloud</h3>
       </div>
       <div id="result" class="span9">

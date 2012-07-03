@@ -1,0 +1,43 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <!--<script src="https://apis.google.com/js/client.js?onload=OnLoadCallback"></script>-->
+    <script type="text/javascript" src="chrome_ex_oauthsimple.js"></script>
+    <script type="text/javascript" src="chrome_ex_oauth.js"></script>
+    <script type="text/javascript">
+    /* TODO: Gmail, wait for javascript api */
+    // var GMAIL_FEED = 'https://mail.google.com/mail/feed/atom';
+    // === Begin OAuth ===
+     /*
+    var oauth = ChromeExOAuth.initBackgroundPage({
+      'request_url' : 'https://www.google.com/accounts/OAuthGetRequestToken',
+      'authorize_url' : 'https://www.google.com/accounts/OAuthAuthorizeToken',
+      'access_url' : 'https://www.google.com/accounts/OAuthGetAccessToken',
+      'consumer_key' : 'anonymous',
+      'consumer_secret' : 'anonymous',
+      'scope' : GMAIL_FEED,
+      'app_name' : 'Chrome History'
+    });
+    */
+    // === End OAuth ===
+    // === Begin Calendar ===
+    var oauth = ChromeExOAuth.initBackgroundPage({
+      'request_url' : 'https://www.google.com/accounts/OAuthGetRequestToken',
+      'authorize_url' : 'https://www.google.com/accounts/OAuthAuthorizeToken',
+      'access_url' : 'https://www.google.com/accounts/OAuthGetAccessToken',
+      'consumer_key' : 'anonymous',
+      'consumer_secret' : 'anonymous',
+      'scope' : 'https://www.google.com/calendar/feeds/',
+      'app_name' : 'Chrome History'
+    });
+    // === End Calendar ===
+    chrome.browserAction.onClicked.addListener(function() {
+      chrome.tabs.create({'url': 'history.html'});
+    });
+    </script>  
+    
+  </head>
+  <body>
+  </body>
+
+</html>
