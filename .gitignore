@@ -1,2 +1,5 @@
 *.rb
 tags
+assets/scripts/*.md
+assets/scripts/.gitignore
+assets/scripts/*.html
