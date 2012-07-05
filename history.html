@@ -3,14 +3,37 @@
 <head>
   <meta http-equiv="content-type" content="text/html; charset=utf-8" />
   <title>Visualized Chrome History</title>
-  <link rel="stylesheet" href="assets/styles/bootstrap.min.css" />
-  <link rel="stylesheet" href="assets/styles/site.css" />
-  <script type="text/javascript" charset="utf-8" src="assets/timeline-api.js"></script>
-  <script type="text/javascript" charset="utf-8" src="assets/chrome_history.js"></script>
-  <script type="text/javascript" charset="utf-8" src="chrome_ex_oauthsimple.js"></script>
-  <script type="text/javascript" charset="utf-8" src="chrome_ex_oauth.js"></script>
-  <script type="text/javascript" charset="utf-8">
-
+  <link rel="stylesheet" type="text/css" href="assets/styles/bootstrap.min.css" />
+  <link rel="stylesheet" type="text/css" href="assets/scripts/chronoline/jquery.qtip.min.css" />
+  <link rel="stylesheet" type="text/css" href="assets/scripts/chronoline/chronoline.css" />
+  <link rel="stylesheet" type="text/css" href="assets/styles/site.css" />
+  <script type="text/javascript" src="assets/scripts/jquery-1.7.2.min.js"></script>  
+  <script type="text/javascript" src="assets/scripts/chronoline/jquery.qtip.min.js"></script>
+  <script type="text/javascript" src="assets/scripts/chronoline/raphael-min.js"></script>
+  <script type="text/javascript" src="assets/scripts/chronoline/chronoline.js"></script>
+  <script type="text/javascript" src="assets/scripts/chrome_history.js"></script>
+  <script type="text/javascript" src="chrome_ex_oauthsimple.js"></script>
+  <script type="text/javascript" src="chrome_ex_oauth.js"></script>
+  <script type="text/javascript">
+  $(document).ready(function() {
+    var heiStr = $('#timeline').css('height');
+    heiStr = heiStr.substring(0, heiStr.length - 2);
+    heiInt = parseInt(heiStr);
+    heiInt = heiInt - 80;
+    var events = [
+      {dates: [new Date(2012, 6, 5, 10)], title: "World Series Begins", section: 3 },
+      {dates: [new Date(2012, 6, 5, 23)], title: "World Series Begins", section: 3}
+    ];
+    var timeline = Chronoline.create(document.getElementById("timeline"), events, {
+      animated: true,
+      tooltips: true,
+      topMargin: heiInt,
+      scrollable: false,
+      startDate: new Date(),
+      subSubLabelAttrs: {'font-size': '18pt'},
+      mode: CHRONOLINE_MODE.HOUR_DAY
+    });
+  });
   /* TODO: calendar
   var url = 'https://www.google.com/calendar/feeds/default/private/full';
   var bgPage = chrome.extension.getBackgroundPage();

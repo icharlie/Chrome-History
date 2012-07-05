@@ -11,7 +11,7 @@
     "default_title": "Chrome History"
   },
   "permissions": [
-    "tabs", "history","bookmarks",
+    "tabs", "history", "bookmarks",
     "https://apis.google.com/js/client.js",
     "https://mail.google.com/feeds/*",
     "https://www.google.com/accounts/OAuthGetRequestToken",
