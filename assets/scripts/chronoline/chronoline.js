@@ -9,6 +9,7 @@ if (!Date.now) {
 }
 
 DAY_IN_MILLISECONDS = 86400000;
+DAY_IN_MINUTES = 1440;
 
 var monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -35,7 +36,7 @@ function stripTime(date) {
 
 function formatDate(date, formatString) {
     // done in the style of c's strftime
-    // TODO slowly adding in new parts to this
+    // TODO: slowly adding in new parts to this
     // note that this also doesn't escape things properly. sorry
     var ret = formatString;
     if (formatString.indexOf('%d') != -1) {
@@ -327,8 +328,8 @@ var Chronoline = {
             t.maxLeftPx = t.totalWidth - t.visibleWidth;
         }
         if (t.mode == CHRONOLINE_MODE.HOUR_DAY) {
-            t.pxRatio = t.visibleWidth / 24;
-            t.totalWidth = t.pxRatio * 24;
+            t.pxRatio = t.visibleWidth / DAY_IN_MINUTES;
+            t.totalWidth = t.pxRatio * DAY_IN_MINUTES;
             t.maxLeftPx = t.totalWidth - t.visibleWidth;
         }
 
@@ -447,7 +448,7 @@ var Chronoline = {
             label.toFront();
         });
 
-        // drawing events
+        // PRAGMA: drawing events
         for (var row = 0; row < t.eventRows.length; row++) {
             var upperY = t.totalHeight - t.dateLabelHeight - (row + 1) * (t.eventMargin + t.eventHeight);
             for (var col = 0; col < t.eventRows[row].length; col++) {
@@ -457,14 +458,18 @@ var Chronoline = {
                     var startX = (event.dates[0].getTime() - t.startTime) * t.pxRatio;
                 }
                 if (t.mode == CHRONOLINE_MODE.HOUR_DAY) {
-                    var startX = event.dates[0].getHours() * t.pxRatio;
+                    var time = event.dates[0].getHours() * 60 + event.dates[0].getMinutes();
+                    var startX =  time * t.pxRatio;
                 }
                 var elem = null;
+                var badge = null;
                 if (event.dates.length == 1) { // it's a single point
                     if (event.icon) {
-                        // TODO: using badge for duplicate events
-                        upperY = upperY - t['icon'].height
-                        elem = t.paper.image(event.icon, startX, upperY,  t['icon'].width, t['icon'].height)
+                        // FIXME: change badge style
+                        upperY = upperY - t['icon'].height - t.eventMargin
+                        elem = t.paper.image(event.icon, startX, upperY,  t['icon'].width, t['icon'].height);
+                        badge = t.paper.text(startX + t['icon'].width - 2, upperY, event.count ? event.count : 1);
+                        badge.attr('fill', '#f00');
                     } else {
                         elem = t.paper.circle(startX, upperY + t.circleRadius, t.circleRadius).attr(t.eventAttrs);
                     }
@@ -547,7 +552,8 @@ var Chronoline = {
         }
 
         // calculated ahead of time
-        var dateLineY = t.totalHeight - t.dateLabelHeight;
+        // positions of baseline, subLabel
+        var dateLineY = t.totalHeight - t.dateLabelHeight - 5;
         var baseline = t.paper.path('M0,' + dateLineY + 'L' + t.totalWidth + ',' + dateLineY);
         baseline.attr('stroke', t.hashColor);
 
@@ -556,7 +562,7 @@ var Chronoline = {
         t.subLabelY = t.bottomHashY + t.fontAttrs['font-size'] * 2 + t.subLabelMargin;
         t.subSubLabelY = t.subLabelY + t.fontAttrs['font-size'] + t.subSubLabelMargin;
 
-        // DATE LABELS
+        // PRAGMA: DATE LABELS
         // only a helper b/c it works within a specific range
         // subSublabels. These can float
         if (t.mode == CHRONOLINE_MODE.MONTH_YEAR) {
@@ -821,8 +827,7 @@ var Chronoline = {
                 t.goToPx(-t.msToPx(date.getTime()) + t.visibleWidth / 2);
             }
         }
-
-        // CREATING THE NAVIGATION
+        // PRAGMA: CREATING THE NAVIGATION
         // this is boring
         if (t.scrollable) {
             t.leftControl = document.createElement('div');
@@ -858,7 +863,7 @@ var Chronoline = {
                 return false;
             };
 
-            // continuous scroll
+            // TODO: continuous scroll
             // left and right are pretty much the same but need to be flipped
             if (t.continuousScroll) {
                 t.isScrolling = false;

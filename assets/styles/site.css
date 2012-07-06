@@ -39,16 +39,15 @@ ol {
 }
 
 hr {
+  margin: 0;
   border: 1px solid #eee;
 }
 #timeline {
-  height: 400px; 
-
   margin-left: 0;
 }
 
+
 .right-line {
-  margin-right: 2px;
-  height: 400px;
+  margin-right: 0;
   border-right:1px solid #eee
 }

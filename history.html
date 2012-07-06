@@ -16,6 +16,10 @@
   <script type="text/javascript" src="chrome_ex_oauth.js"></script>
   <script type="text/javascript">
   $(document).ready(function() {
+    // set #timeline half height of window
+    $("#timeline").css('height', window.screen.height / 2);
+    $("#search").css('height', window.screen.height / 2);
+    
     var heiStr = $('#timeline').css('height');
     heiStr = heiStr.substring(0, heiStr.length - 2);
     heiInt = parseInt(heiStr);
