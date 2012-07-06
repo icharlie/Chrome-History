@@ -12,18 +12,20 @@
   <script type="text/javascript" src="assets/scripts/chronoline/raphael-min.js"></script>
   <script type="text/javascript" src="assets/scripts/chronoline/chronoline.js"></script>
   <script type="text/javascript" src="assets/scripts/chrome_history.js"></script>
+  <script type="text/javascript" src="assets/scripts/URI.min.js"></script>
   <script type="text/javascript" src="chrome_ex_oauthsimple.js"></script>
   <script type="text/javascript" src="chrome_ex_oauth.js"></script>
   <script type="text/javascript">
   $(document).ready(function() {
     // set #timeline half height of window
-    $("#timeline").css('height', window.screen.height / 2);
-    $("#search").css('height', window.screen.height / 2);
-    
+    $("#timeline, #search").css('height', window.screen.height / 2);
+    $("#icon, #result").css('height', $(window).height() - $("#timeline").height());
+    // calculate timeline canvas top margin.
     var heiStr = $('#timeline').css('height');
     heiStr = heiStr.substring(0, heiStr.length - 2);
     heiInt = parseInt(heiStr);
     heiInt = heiInt - 80;
+    
     var today = new Date();
     stripTime(today);
     // TODO: change maxResults after developing process.
@@ -31,75 +33,41 @@
       'text': '',
       'startTime': today.getTime(),
       'endTime': today.getTime() + DAY_IN_MILLISECONDS,
-      'maxResults': 10
+      'maxResults': 800
     }, function(result) {
+      var data = {};
       var events = [];
-
       result.forEach(function(r) {
-        events.push({
-          dates: [new Date(r.lastVisitTime)],
-          title: r.title,
-          icon: 'chrome://favicon/' + r.url
-        })});
-          var timeline = Chronoline.create(document.getElementById("timeline"), events, {
-            animated: true,
-            tooltips: true,
-            topMargin: heiInt,
-            scrollable: false,
-            startDate: new Date(),
-            subSubLabelAttrs: {'font-size': '18pt'},
-            mode: CHRONOLINE_MODE.HOUR_DAY
-          });
-        });
+        var event = null;
+        var uri = URI(r.url);
+        var key = uri.scheme() + '://' + uri.host();
+        if(data[key]) {
+          data[key].count += 1;
+        } else {
+            event = {
+              dates: [new Date(r.lastVisitTime)],
+              title: r.title,
+              icon: 'chrome://favicon/' + r.url,
+              count: 1
+              };
+            data[key] = event;
+        }
+      });
+      for(var url in data) {
+        events.push(data[url]);
+      }
+      var timeline = Chronoline.create(document.getElementById("timeline"), events, {
+        animated: true,
+        tooltips: true,
+        topMargin: heiInt,
+        scrollable: false,
+        startDate: new Date(),
+        subSubLabelAttrs: {'font-size': '18pt'},
+        mode: CHRONOLINE_MODE.HOUR_DAY
+      });
+
     });
-    
-
-   // var events = [
-   //    {dates: [new Date(2012, 6, 5, 10)], title: "World Series Begins", icon: 'assets/images/gmail.png'},
-   //    {dates: [new Date(2012, 6, 5, 23)], title: "World Series Begins"}
-   //  ];
-
-  /* TODO: calendar
-  var url = 'https://www.google.com/calendar/feeds/default/private/full';
-  var bgPage = chrome.extension.getBackgroundPage();
-  bgPage.oauth.authorize(function() {
-      bgPage.oauth.sendSignedRequest(url,
-        function(resp, xhr) {
-          if (xhr.status != 200) {
-            console.log('error');
-          } else {
-            console.log('success');
-            console.log(resp);
-          }
-        }, {
-          'parameters' : {
-            'alt': 'json'
-          }
-        }
-      )});
-
-  */
-  /* TODO
-    var GMAIL_FEED = 'https://mail.google.com/mail/b/icharlie.osu@gmail.com/imap/';
-    // var GMAIL_FEED = 'https://mail.google.com/mail/feed/atom';
-    var bgPage = chrome.extension.getBackgroundPage();
-    bgPage.oauth.authorize(function() {
-      bgPage.oauth.sendSignedRequest(GMAIL_FEED,
-          function(resp, xhr) {
-            if (xhr.status != 200) {
-              console.log('error');
-              return;
-            }  else {
-              console.log('success');
-              console.log(resp);
-            }
-         }, {
-        'parameters': {
-          'alt': 'json',
-        }
-      });
-      });
-      */
+  });
   </script>
 </head>
 <body>
@@ -159,11 +127,7 @@
       </div>
       <div id="result" class="span9">
         <h3>Result</h3>
-        <ol>
-          <li class="entry">
-                3:22 PM
-                <a href="chrome-extension://bmbpioijbaifcbihbdckaodjodlekidi/history.html" id="id-0" target="_top" title="Visualized Chrome History">Visualized Chrome History</a>
-            </li>
+        <ol id="result-list">
         </ol>
       </div>
     </div>

@@ -309,11 +309,13 @@ var Chronoline = {
                     tmpDates.push(t.events[i].dates[j]);
                 }
             }
+            // FIXME: create event structure
             if (tmpDates.length > 0) tmpEvents.push({
                 'dates': tmpDates,
                 'section': t.events[i].section,
                 'title': t.events[i].title,
-                'icon': t.events[i].icon
+                'icon': t.events[i].icon,
+                'count': t.events[i].count
             });
         }
         t.events = tmpEvents;
@@ -466,10 +468,11 @@ var Chronoline = {
                 if (event.dates.length == 1) { // it's a single point
                     if (event.icon) {
                         // FIXME: change badge style
-                        upperY = upperY - t['icon'].height - t.eventMargin
+                        upperY = upperY - t['icon'].height - t.eventMargin - 8
                         elem = t.paper.image(event.icon, startX, upperY,  t['icon'].width, t['icon'].height);
                         badge = t.paper.text(startX + t['icon'].width - 2, upperY, event.count ? event.count : 1);
                         badge.attr('fill', '#f00');
+                        badge.attr('font-size', 12);
                     } else {
                         elem = t.paper.circle(startX, upperY + t.circleRadius, t.circleRadius).attr(t.eventAttrs);
                     }

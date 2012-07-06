@@ -1,4 +1,5 @@
 *.rb
+*.backup
 tags
 assets/scripts/*.md
 assets/scripts/.gitignore
