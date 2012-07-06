@@ -20,20 +20,41 @@
     heiStr = heiStr.substring(0, heiStr.length - 2);
     heiInt = parseInt(heiStr);
     heiInt = heiInt - 80;
-    var events = [
-      {dates: [new Date(2012, 6, 5, 10)], title: "World Series Begins", section: 3 },
-      {dates: [new Date(2012, 6, 5, 23)], title: "World Series Begins", section: 3}
-    ];
-    var timeline = Chronoline.create(document.getElementById("timeline"), events, {
-      animated: true,
-      tooltips: true,
-      topMargin: heiInt,
-      scrollable: false,
-      startDate: new Date(),
-      subSubLabelAttrs: {'font-size': '18pt'},
-      mode: CHRONOLINE_MODE.HOUR_DAY
+    var today = new Date();
+    stripTime(today);
+    // TODO: change maxResults after developing process.
+    chrome.history.search({
+      'text': '',
+      'startTime': today.getTime(),
+      'endTime': today.getTime() + DAY_IN_MILLISECONDS,
+      'maxResults': 10
+    }, function(result) {
+      var events = [];
+
+      result.forEach(function(r) {
+        events.push({
+          dates: [new Date(r.lastVisitTime)],
+          title: r.title,
+          icon: 'chrome://favicon/' + r.url
+        })});
+          var timeline = Chronoline.create(document.getElementById("timeline"), events, {
+            animated: true,
+            tooltips: true,
+            topMargin: heiInt,
+            scrollable: false,
+            startDate: new Date(),
+            subSubLabelAttrs: {'font-size': '18pt'},
+            mode: CHRONOLINE_MODE.HOUR_DAY
+          });
+        });
     });
-  });
+    
+
+   // var events = [
+   //    {dates: [new Date(2012, 6, 5, 10)], title: "World Series Begins", icon: 'assets/images/gmail.png'},
+   //    {dates: [new Date(2012, 6, 5, 23)], title: "World Series Begins"}
+   //  ];
+
   /* TODO: calendar
   var url = 'https://www.google.com/calendar/feeds/default/private/full';
   var bgPage = chrome.extension.getBackgroundPage();
