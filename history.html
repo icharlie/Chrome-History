@@ -6,67 +6,34 @@
   <link rel="stylesheet" type="text/css" href="assets/styles/bootstrap.min.css" />
   <link rel="stylesheet" type="text/css" href="assets/scripts/chronoline/jquery.qtip.min.css" />
   <link rel="stylesheet" type="text/css" href="assets/scripts/chronoline/chronoline.css" />
+  <link rel="stylesheet" type="text/css" href="assets/styles/jquery-ui-datepicker.min.css" />
   <link rel="stylesheet" type="text/css" href="assets/styles/site.css" />
   <script type="text/javascript" src="assets/scripts/jquery-1.7.2.min.js"></script>  
+  <script type="text/javascript" src="assets/scripts/jquery-ui-datepicker.min.js"></script>  
   <script type="text/javascript" src="assets/scripts/chronoline/jquery.qtip.min.js"></script>
   <script type="text/javascript" src="assets/scripts/chronoline/raphael-min.js"></script>
   <script type="text/javascript" src="assets/scripts/chronoline/chronoline.js"></script>
   <script type="text/javascript" src="assets/scripts/chrome_history.js"></script>
   <script type="text/javascript" src="assets/scripts/URI.min.js"></script>
-  <script type="text/javascript" src="chrome_ex_oauthsimple.js"></script>
-  <script type="text/javascript" src="chrome_ex_oauth.js"></script>
+  <!--TODO: for google products authen-->
+  <!--<script type="text/javascript" src="chrome_ex_oauthsimple.js"></script>-->
+  <!--<script type="text/javascript" src="chrome_ex_oauth.js"></script>-->
   <script type="text/javascript">
   $(document).ready(function() {
+    var today = new Date();
+    // PRAGMA: datepicker
+    $("#timeline-date").attr("placeholder", $.datepicker.formatDate('mm/dd/yy', today));
+    $("#timeline-date").datepicker({
+      onSelect: function(dateText, inst) {
+        console.log(dateText);
+        var selectedDate = new Date(dateText);
+        searchChromeHistory(selectedDate);
+      }});
     // set #timeline half height of window
     $("#timeline, #search").css('height', window.screen.height / 2);
     $("#icon, #result").css('height', $(window).height() - $("#timeline").height());
-    // calculate timeline canvas top margin.
-    var heiStr = $('#timeline').css('height');
-    heiStr = heiStr.substring(0, heiStr.length - 2);
-    heiInt = parseInt(heiStr);
-    heiInt = heiInt - 80;
-    
-    var today = new Date();
     stripTime(today);
-    // TODO: change maxResults after developing process.
-    chrome.history.search({
-      'text': '',
-      'startTime': today.getTime(),
-      'endTime': today.getTime() + DAY_IN_MILLISECONDS,
-      'maxResults': 800
-    }, function(result) {
-      var data = {};
-      var events = [];
-      result.forEach(function(r) {
-        var event = null;
-        var uri = URI(r.url);
-        var key = uri.scheme() + '://' + uri.host();
-        if(data[key]) {
-          data[key].count += 1;
-        } else {
-            event = {
-              dates: [new Date(r.lastVisitTime)],
-              title: r.title,
-              icon: 'chrome://favicon/' + r.url,
-              count: 1
-              };
-            data[key] = event;
-        }
-      });
-      for(var url in data) {
-        events.push(data[url]);
-      }
-      var timeline = Chronoline.create(document.getElementById("timeline"), events, {
-        animated: true,
-        tooltips: true,
-        topMargin: heiInt,
-        scrollable: false,
-        startDate: new Date(),
-        subSubLabelAttrs: {'font-size': '18pt'},
-        mode: CHRONOLINE_MODE.HOUR_DAY
-      });
-
-    });
+    searchChromeHistory(today);
   });
   </script>
 </head>
@@ -118,6 +85,11 @@
         </ol>
       </div>
       <div id="timeline" class="span10">
+        <label for="timeline-date">Date:</label>
+        <input type="text" name="timeline-date" id="timeline-date" value="" />
+        <div id="timeline-chart">
+          
+        </div>
       </div>
     </div>
     <hr>

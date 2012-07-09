@@ -1,3 +1,9 @@
+/* == default setting== */
+body {
+  font-family: Lucida Grande, Lucida Sans, Arial, sans-serif; 
+  font-size: 1em;
+}
+
 /* == Begin search == */
 input[type="submit"] {
   min-height: 25px;
@@ -28,10 +34,17 @@ input[type='search'] {
   padding: 3px;
   /* For better alignment between adjacent buttons and inputs. */
   padding-bottom: 4px;
+  -webkit-appearance: textfield;
+}
+
+input[type="radio"]:enabled:focus, input[type='search']:enabled:focus, select:enabled:focus{
+  -webkit-transition: border-color 200ms;
+  border-color: #4D90FE;
+  outline:none;
 }
 
 ol {
-  padding-left: 0;
+  padding-left: 5px;
 }
 /* == End search == */
 .row-fluid {
@@ -48,5 +61,5 @@ hr {
 
 .right-line {
   margin-right: 0;
-  border-right:1px solid #eee
+  border-right:1px solid #eee;
 }

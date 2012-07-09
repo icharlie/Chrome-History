@@ -195,8 +195,136 @@ var Chronoline = {
         }
     },
     
+    drawLabelsHelper: function(start, end) {
+      var t = Chronoline;
+      var dateLineY = t.totalHeight - t.dateLabelHeight - 5;
+      switch (t.mode) {
+      case CHRONOLINE_MODE.MONTH_YEAR:
+        {
+            var startMs = start;
+            var endMs = end;
+            for (var curMs = startMs; curMs < endMs; curMs += DAY_IN_MILLISECONDS) {
+                var curDate = new Date(curMs);
+                var day = curDate.getUTCDate();
+                var x = t.msToPx(curMs);
+
+                // the little hashes
+                if (t.hashInterval == null || t.hashInterval(curDate)) {
+                    var hash = t.paper.path('M' + x + ',' + dateLineY + 'L' + x + ',' + t.bottomHashY);
+                    hash.attr('stroke', t.hashColor);
+                }
+
+                // the labels directly below the hashes
+                if (t.labelInterval == null || t.labelInterval(curDate)) {
+                    var displayDate = String(day);
+                    if (displayDate.length == 1) displayDate = '0' + displayDate;
+
+                    var label = t.paper.text(x, t.labelY, displayDate);
+                    label.attr(t.fontAttrs);
+                }
+
+                // special markers for today
+                if (t.markToday && curMs == t.today.getTime()) {
+                    if (t.markToday == 'labelBox') {
+                        label.attr({
+                            'text': label.attr('text') + '\n' + formatDate(curDate, '%b').toUpperCase(),
+                            'font-size': t.fontAttrs['font-size'] + 2,
+                            'y': t.bottomHashY + t.fontAttrs['font-size'] + 5
+                        });
+                        var bbox = label.getBBox();
+                        var labelBox = t.paper.rect(bbox.x - 2, bbox.y - 2, bbox.width + 4, bbox.height + 4);
+                        labelBox.attr('fill', '90-#f4f4f4-#e8e8e8');
+                        labelBox.insertBefore(label);
+                    } else if (t.markToday == 'line') {
+                        var line = t.paper.path('M' + x + ',0L' + x + ',' + dateLineY);
+                        line.attr(t.todayAttrs);
+                    }
+                }
+
+                // sublabels. These can float
+                if (day == 1 && t.subLabel == 'month') {
+                    var subLabel = t.paper.text(x, t.subLabelY, formatDate(curDate, '%b').toUpperCase());
+                    subLabel.attr(t.fontAttrs);
+                    subLabel.attr(t.subLabelAttrs);
+                    if (t.floatingSubLabels) {
+                        // bounds determine how far things can float
+                        subLabel.data('left-bound', x);
+                        var endOfMonth = new Date(Date.UTC(curDate.getUTCFullYear(), curDate.getUTCMonth() + 1, 0));
+                        subLabel.data('right-bound', Math.min((endOfMonth.getTime() - t.startTime) * t.pxRatio - 5, t.totalWidth));
+                        t.floatingSet.push(subLabel);
+                    }
+                }
+            }
+            break;
+        }
+      case CHRONOLINE_MODE.HOUR_DAY:
+        {
+            var interval = t.visibleWidth / 24;
+            for (var cur = start, val = start; cur < t.visibleWidth; cur += interval, val += 1) {
+                x = cur + 4;
+                var hash = t.paper.path('M' + x + ',' + dateLineY + 'L' + x + ',' + t.bottomHashY);
+                hash.attr('stroke', t.hashColor);
+                var label = t.paper.text(x, t.labelY, String(val));
+                label.attr(t.fontAttrs);
+            }
+            x = t.visibleWidth - 4;
+            var hash = t.paper.path('M' + x + ',' + dateLineY + 'L' + x + ',' + t.bottomHashY);
+            hash.attr('stroke', t.hashColor);
+            var label = t.paper.text(x, t.labelY, String(0));
+            label.attr(t.fontAttrs);
+        }
+      }
+    },
+    
+    drawLabels: function(leftPxPos) {
+      var t = this;
+      t.drawnStartMs = null;
+      t.drawnEndMs = null;
+      switch(t.mode) {
+        case CHRONOLINE_MODE.MONTH_YEAR:
+          var newStartPx = Math.max(0, leftPxPos - t.visibleWidth);
+          var newEndPx = Math.min(t.totalWidth, leftPxPos + 2 * t.visibleWidth);
+
+          var newStartDate = new Date(t.pxToMs(newStartPx));
+          newStartDate = new Date(Date.UTC(newStartDate.getUTCFullYear(), newStartDate.getUTCMonth(), 1));
+          var newStartMs = newStartDate.getTime();
+          var newEndDate = new Date(t.pxToMs(Math.min(t.totalWidth, leftPxPos + 2 * t.visibleWidth)));
+          stripTime(newEndDate);
+          var newEndMs = newEndDate.getTime();
+
+          if (t.drawnStartMs === null) { // first time
+              t.drawnStartMs = newStartMs;
+              t.drawnEndMs = newEndMs;
+              t.drawLabelsHelper(newStartMs, newEndMs);
+          } else if (newStartMs > t.drawnEndMs) { // new labels are to the right
+              t.drawLabelsHelper(t.drawnEndMs, newEndMs);
+              t.drawnEndMs = newEndMs;
+          } else if (newEndMs < t.drawnStartMs) { // to the left
+              t.drawLabelsHelper(newStartMs, t.drawnStartMs);
+              t.drawnStartMs = newStartMs;
+          } else { // overlap
+              if (newStartMs < t.drawnStartMs) {
+                  t.drawLabelsHelper(newStartMs, t.drawnStartMs);
+                  t.drawnStartMs = newStartMs;
+              }
+              if (newEndMs > t.drawnEndMs) {
+                  t.drawLabelsHelper(t.drawnEndMs, newEndMs);
+                  t.drawnEndMs = newEndMs;
+              }
+          }
+          break;
+        case CHRONOLINE_MODE.HOUR_DAY:
+          //var newStartPx = Math.max(0, leftPxPos - t.visibleWidth);
+          //var newEndPx = Math.min(t.totalWidth, leftPxPos + 2 * t.visibleWidth);
+          t.drawLabelsHelper(0, 24);
+          break;
+        default:
+          break;
+      }
+    },
+    
     create: function(domElement, events, options) {
-        var defaults = Chronoline.defaults
+        var defaults = Chronoline.defaults;
         var t = this;
 
         // FILL DEFAULTS
@@ -208,8 +336,8 @@ var Chronoline = {
         }
 
         // options shouldn't be on if there aren't any sections
-        t.floatingSectionLabels &= t.sections != null;
-        t.sectionLabelsOnHover &= t.sections != null;
+        t.floatingSectionLabels &= t.sections !== null;
+        t.sectionLabelsOnHover &= t.sections !== null;
 
         // HTML elements to put everything in
         t.domElement = domElement;
@@ -272,7 +400,6 @@ var Chronoline = {
                     if (t.sections[i].dates[0] < t.startDate) t.startDate = t.sections[i].dates[0];
                 }
             } else {
-                return;
             }
         }
         stripTime(t.startDate);
@@ -286,13 +413,12 @@ var Chronoline = {
                 t.endDate = getEndDate(t.events[0].dates);
                 for (var i = 1; i < t.events.length; i++)
                 if (getEndDate(t.events[i].dates) > t.endDate) t.endDate = getEndDate(t.events[i].dates);
-            } else if (t.sections.length > 0) {
+            } else if (t.sections != null && t.sections.length > 0 /* FIXME: for now just check sections not null*/) {
                 t.endDate = t.sections[0].dates[1];
                 for (var i = 0; i < t.sections.length; i++) {
                     if (t.sections[i].dates[1] > t.endDate) t.endDate = t.sections[i].dates[1];
                 }
             } else {
-                return;
             }
         }
         if (t.endDate < t.defaultStartDate) t.endDate = t.defaultStartDate;
@@ -588,8 +714,7 @@ var Chronoline = {
             }
         }
         if (t.mode == CHRONOLINE_MODE.HOUR_DAY) {
-            var curDate = new Date();
-            stripTime(curDate);
+            var curDate = t.startDate;
             // position
             var x = t.visibleWidth / 2;
             var subSubLabel = t.paper.text(x, t.subSubLabelY, formatDate(curDate, '%b %d'));
@@ -598,134 +723,134 @@ var Chronoline = {
         }
 
 
-        t.drawLabelsHelper = function(start, end) {
-            switch (t.mode) {
-            case CHRONOLINE_MODE.MONTH_YEAR:
-                {
-                    var startMs = start;
-                    var endMs = end;
-                    for (var curMs = startMs; curMs < endMs; curMs += DAY_IN_MILLISECONDS) {
-                        var curDate = new Date(curMs);
-                        var day = curDate.getUTCDate();
-                        var x = t.msToPx(curMs);
+        // t.drawLabelsHelper = function(start, end) {
+        //             switch (t.mode) {
+        //             case CHRONOLINE_MODE.MONTH_YEAR:
+        //                 {
+        //                     var startMs = start;
+        //                     var endMs = end;
+        //                     for (var curMs = startMs; curMs < endMs; curMs += DAY_IN_MILLISECONDS) {
+        //                         var curDate = new Date(curMs);
+        //                         var day = curDate.getUTCDate();
+        //                         var x = t.msToPx(curMs);
+        // 
+        //                         // the little hashes
+        //                         if (t.hashInterval == null || t.hashInterval(curDate)) {
+        //                             var hash = t.paper.path('M' + x + ',' + dateLineY + 'L' + x + ',' + t.bottomHashY);
+        //                             hash.attr('stroke', t.hashColor);
+        //                         }
+        // 
+        //                         // the labels directly below the hashes
+        //                         if (t.labelInterval == null || t.labelInterval(curDate)) {
+        //                             var displayDate = String(day);
+        //                             if (displayDate.length == 1) displayDate = '0' + displayDate;
+        // 
+        //                             var label = t.paper.text(x, t.labelY, displayDate);
+        //                             label.attr(t.fontAttrs);
+        //                         }
+        // 
+        //                         // special markers for today
+        //                         if (t.markToday && curMs == t.today.getTime()) {
+        //                             if (t.markToday == 'labelBox') {
+        //                                 label.attr({
+        //                                     'text': label.attr('text') + '\n' + formatDate(curDate, '%b').toUpperCase(),
+        //                                     'font-size': t.fontAttrs['font-size'] + 2,
+        //                                     'y': t.bottomHashY + t.fontAttrs['font-size'] + 5
+        //                                 });
+        //                                 var bbox = label.getBBox();
+        //                                 var labelBox = t.paper.rect(bbox.x - 2, bbox.y - 2, bbox.width + 4, bbox.height + 4);
+        //                                 labelBox.attr('fill', '90-#f4f4f4-#e8e8e8');
+        //                                 labelBox.insertBefore(label);
+        //                             } else if (t.markToday == 'line') {
+        //                                 var line = t.paper.path('M' + x + ',0L' + x + ',' + dateLineY);
+        //                                 line.attr(t.todayAttrs);
+        //                             }
+        //                         }
+        // 
+        //                         // sublabels. These can float
+        //                         if (day == 1 && t.subLabel == 'month') {
+        //                             var subLabel = t.paper.text(x, t.subLabelY, formatDate(curDate, '%b').toUpperCase());
+        //                             subLabel.attr(t.fontAttrs);
+        //                             subLabel.attr(t.subLabelAttrs);
+        //                             if (t.floatingSubLabels) {
+        //                                 // bounds determine how far things can float
+        //                                 subLabel.data('left-bound', x);
+        //                                 var endOfMonth = new Date(Date.UTC(curDate.getUTCFullYear(), curDate.getUTCMonth() + 1, 0));
+        //                                 subLabel.data('right-bound', Math.min((endOfMonth.getTime() - t.startTime) * t.pxRatio - 5, t.totalWidth));
+        //                                 t.floatingSet.push(subLabel);
+        //                             }
+        //                         }
+        //                     }
+        //                     break;
+        //                 }
+        //             case CHRONOLINE_MODE.HOUR_DAY:
+        //                 {
+        //                     var interval = t.visibleWidth / 24;
+        //                     for (var cur = start, val = start; cur < t.visibleWidth; cur += interval, val += 1) {
+        //                         x = cur + 4;
+        //                         var hash = t.paper.path('M' + x + ',' + dateLineY + 'L' + x + ',' + t.bottomHashY);
+        //                         hash.attr('stroke', t.hashColor);
+        //                         var label = t.paper.text(x, t.labelY, String(val));
+        //                         label.attr(t.fontAttrs);
+        //                     }
+        //                     x = t.visibleWidth - 4;
+        //                     var hash = t.paper.path('M' + x + ',' + dateLineY + 'L' + x + ',' + t.bottomHashY);
+        //                     hash.attr('stroke', t.hashColor);
+        //                     var label = t.paper.text(x, t.labelY, String(0));
+        //                     label.attr(t.fontAttrs);
+        //                 }
+        //             }
+        //         }
 
-                        // the little hashes
-                        if (t.hashInterval == null || t.hashInterval(curDate)) {
-                            var hash = t.paper.path('M' + x + ',' + dateLineY + 'L' + x + ',' + t.bottomHashY);
-                            hash.attr('stroke', t.hashColor);
-                        }
-
-                        // the labels directly below the hashes
-                        if (t.labelInterval == null || t.labelInterval(curDate)) {
-                            var displayDate = String(day);
-                            if (displayDate.length == 1) displayDate = '0' + displayDate;
-
-                            var label = t.paper.text(x, t.labelY, displayDate);
-                            label.attr(t.fontAttrs);
-                        }
-
-                        // special markers for today
-                        if (t.markToday && curMs == t.today.getTime()) {
-                            if (t.markToday == 'labelBox') {
-                                label.attr({
-                                    'text': label.attr('text') + '\n' + formatDate(curDate, '%b').toUpperCase(),
-                                    'font-size': t.fontAttrs['font-size'] + 2,
-                                    'y': t.bottomHashY + t.fontAttrs['font-size'] + 5
-                                });
-                                var bbox = label.getBBox();
-                                var labelBox = t.paper.rect(bbox.x - 2, bbox.y - 2, bbox.width + 4, bbox.height + 4);
-                                labelBox.attr('fill', '90-#f4f4f4-#e8e8e8');
-                                labelBox.insertBefore(label);
-                            } else if (t.markToday == 'line') {
-                                var line = t.paper.path('M' + x + ',0L' + x + ',' + dateLineY);
-                                line.attr(t.todayAttrs);
-                            }
-                        }
-
-                        // sublabels. These can float
-                        if (day == 1 && t.subLabel == 'month') {
-                            var subLabel = t.paper.text(x, t.subLabelY, formatDate(curDate, '%b').toUpperCase());
-                            subLabel.attr(t.fontAttrs);
-                            subLabel.attr(t.subLabelAttrs);
-                            if (t.floatingSubLabels) {
-                                // bounds determine how far things can float
-                                subLabel.data('left-bound', x);
-                                var endOfMonth = new Date(Date.UTC(curDate.getUTCFullYear(), curDate.getUTCMonth() + 1, 0));
-                                subLabel.data('right-bound', Math.min((endOfMonth.getTime() - t.startTime) * t.pxRatio - 5, t.totalWidth));
-                                t.floatingSet.push(subLabel);
-                            }
-                        }
-                    }
-                    break;
-                }
-            case CHRONOLINE_MODE.HOUR_DAY:
-                {
-                    var interval = t.visibleWidth / 24;
-                    for (var cur = start, val = start; cur < t.visibleWidth; cur += interval, val += 1) {
-                        x = cur + 4;
-                        var hash = t.paper.path('M' + x + ',' + dateLineY + 'L' + x + ',' + t.bottomHashY);
-                        hash.attr('stroke', t.hashColor);
-                        var label = t.paper.text(x, t.labelY, String(val));
-                        label.attr(t.fontAttrs);
-                    }
-                    x = t.visibleWidth - 4;
-                    var hash = t.paper.path('M' + x + ',' + dateLineY + 'L' + x + ',' + t.bottomHashY);
-                    hash.attr('stroke', t.hashColor);
-                    var label = t.paper.text(x, t.labelY, String(0));
-                    label.attr(t.fontAttrs);
-                }
-            }
-        }
 
 
-        t.drawnStartMs = null;
-        t.drawnEndMs = null;
+        // TODO: remove here, already move to outtier
         // this actually draws labels. It calculates the set of labels to draw in-between
         // what it currently has and needs to add
         // TODO: after implemented mode register, move to regist function
-        t.drawLabels = function(leftPxPos) {
-            switch (t.mode) {
-            case CHRONOLINE_MODE.MONTH_YEAR:
-                {
-                    var newStartPx = Math.max(0, leftPxPos - t.visibleWidth);
-                    var newEndPx = Math.min(t.totalWidth, leftPxPos + 2 * t.visibleWidth);
-
-                    var newStartDate = new Date(t.pxToMs(newStartPx));
-                    newStartDate = new Date(Date.UTC(newStartDate.getUTCFullYear(), newStartDate.getUTCMonth(), 1));
-                    var newStartMs = newStartDate.getTime();
-                    var newEndDate = new Date(t.pxToMs(Math.min(t.totalWidth, leftPxPos + 2 * t.visibleWidth)));
-                    stripTime(newEndDate);
-                    var newEndMs = newEndDate.getTime();
-
-                    if (t.drawnStartMs == null) { // first time
-                        t.drawnStartMs = newStartMs;
-                        t.drawnEndMs = newEndMs;
-                        t.drawLabelsHelper(newStartMs, newEndMs);
-                    } else if (newStartMs > t.drawnEndMs) { // new labels are to the right
-                        t.drawLabelsHelper(t.drawnEndMs, newEndMs);
-                        t.drawnEndMs = newEndMs;
-                    } else if (newEndMs < t.drawnStartMs) { // to the left
-                        t.drawLabelsHelper(newStartMs, t.drawnStartMs);
-                        t.drawnStartMs = newStartMs;
-                    } else { // overlap
-                        if (newStartMs < t.drawnStartMs) {
-                            t.drawLabelsHelper(newStartMs, t.drawnStartMs);
-                            t.drawnStartMs = newStartMs;
-                        }
-                        if (newEndMs > t.drawnEndMs) {
-                            t.drawLabelsHelper(t.drawnEndMs, newEndMs);
-                            t.drawnEndMs = newEndMs;
-                        }
-                    }
-                    break;
-                }
-            case CHRONOLINE_MODE.HOUR_DAY:
-                var newStartPx = Math.max(0, leftPxPos - t.visibleWidth);
-                var newEndPx = Math.min(t.totalWidth, leftPxPos + 2 * t.visibleWidth);
-                t.drawLabelsHelper(0, 24);
-            }
-
-        }
+        // t.drawLabels = function(leftPxPos) {
+        //     switch (t.mode) {
+        //     case CHRONOLINE_MODE.MONTH_YEAR:
+        //         {
+        //             var newStartPx = Math.max(0, leftPxPos - t.visibleWidth);
+        //             var newEndPx = Math.min(t.totalWidth, leftPxPos + 2 * t.visibleWidth);
+        // 
+        //             var newStartDate = new Date(t.pxToMs(newStartPx));
+        //             newStartDate = new Date(Date.UTC(newStartDate.getUTCFullYear(), newStartDate.getUTCMonth(), 1));
+        //             var newStartMs = newStartDate.getTime();
+        //             var newEndDate = new Date(t.pxToMs(Math.min(t.totalWidth, leftPxPos + 2 * t.visibleWidth)));
+        //             stripTime(newEndDate);
+        //             var newEndMs = newEndDate.getTime();
+        // 
+        //             if (t.drawnStartMs == null) { // first time
+        //                 t.drawnStartMs = newStartMs;
+        //                 t.drawnEndMs = newEndMs;
+        //                 t.drawLabelsHelper(newStartMs, newEndMs);
+        //             } else if (newStartMs > t.drawnEndMs) { // new labels are to the right
+        //                 t.drawLabelsHelper(t.drawnEndMs, newEndMs);
+        //                 t.drawnEndMs = newEndMs;
+        //             } else if (newEndMs < t.drawnStartMs) { // to the left
+        //                 t.drawLabelsHelper(newStartMs, t.drawnStartMs);
+        //                 t.drawnStartMs = newStartMs;
+        //             } else { // overlap
+        //                 if (newStartMs < t.drawnStartMs) {
+        //                     t.drawLabelsHelper(newStartMs, t.drawnStartMs);
+        //                     t.drawnStartMs = newStartMs;
+        //                 }
+        //                 if (newEndMs > t.drawnEndMs) {
+        //                     t.drawLabelsHelper(t.drawnEndMs, newEndMs);
+        //                     t.drawnEndMs = newEndMs;
+        //                 }
+        //             }
+        //             break;
+        //         }
+        //     case CHRONOLINE_MODE.HOUR_DAY:
+        //         var newStartPx = Math.max(0, leftPxPos - t.visibleWidth);
+        //         var newEndPx = Math.min(t.totalWidth, leftPxPos + 2 * t.visibleWidth);
+        //         t.drawLabelsHelper(0, 24);
+        //     }
+        // 
+        // }
 
         t.isMoving = false;
         t.goToPx = function(finalLeft, isAnimated, isLabelsDrawn) {
@@ -748,7 +873,7 @@ var Chronoline = {
 
             finalLeft = Math.min(finalLeft, 0);
             finalLeft = Math.max(finalLeft, -t.maxLeftPx);
-
+            // FIXME: Move to initial step
             if (isLabelsDrawn) t.drawLabels(-finalLeft);
 
             var left = getLeft(t.paperElem);
