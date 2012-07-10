@@ -31,9 +31,9 @@ input[type='search'] {
   margin: 0;
   /* Use min-height to accommodate addditional padding for touch as needed. */
   min-height: 25px;
-  padding: 3px;
+  padding: 3px 0 4px 0;
   /* For better alignment between adjacent buttons and inputs. */
-  padding-bottom: 4px;
+/*  padding-bottom: 4px;*/
   -webkit-appearance: textfield;
 }
 
@@ -44,7 +44,11 @@ input[type="radio"]:enabled:focus, input[type='search']:enabled:focus, select:en
 }
 
 ol {
-  padding-left: 5px;
+  padding-left: 10px;
+}
+
+ol li {
+  padding-bottom: 5px;
 }
 /* == End search == */
 .row-fluid {
@@ -53,13 +57,48 @@ ol {
 
 hr {
   margin: 0;
-  border: 1px solid #eee;
+  border: 1px solid #eee;  
 }
 #timeline {
   margin-left: 0;
 }
 
 .right-line {
-  margin-right: 0;
   border-right:1px solid #eee;
 }
+
+/* == Customized boostrap == */
+.container-fluid {
+  padding-left: 0;
+}
+
+.row-fluid {
+  padding-left: 20px;
+}
+
+/* == Result block == */
+
+/* == pagination == */
+a[href^='#page'] {
+  padding: 0 2px 0 2px;
+}
+
+.entry .time {
+  color: #979CA0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 90px;
+}
+
+.entry .title {
+  -webkit-padding-start: 30px;
+  background-position-y: 3px;
+  background-repeat: no-repeat;
+  -webkit-box-flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+}
+

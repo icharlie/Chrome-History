@@ -19,23 +19,43 @@ var ChromeHistory = {
 
 function formateDate (date) {
   var hrs = date.getHours();
+  var mins = date.getMinutes();
   if (hrs > 12) {
     hrs = hrs - 12;
-    return hrs + ":" + date.getMinutes() + " PM";
-  } else if (hrs == 12) {
-    return hrs + ":" + date.getMinutes() + " PM";
+  }
+  if (mins < 10) {
+    mins = "0" + mins;
+  }
+
+  if (date.getHours() >= 12) {
+    return hrs + ":" + mins + " PM";
   } else {
-    return hrs + ":" + date.getMinutes() + " AM";    
+    return hrs + ":" + mins + " AM";    
   }
 }
 
+function getVistItem(historyItem, date) {
+  var visitItem = [];
+  var initTime = date.getTime();
+  var endTime = date.getTime() + DAY_IN_MILLISECONDS;
+  chrome.history.getVisits({url: historyItem.url}, function(result) {  
+    result.forEach(function(r){
+            var curDate = new Date(r.visitTime);
+      var curTime = curDate.getTime() ;
+      if (curTime >= initTime  && curTime <= endTime ) {
+        visitTime.push(r);
+      }
+    }); 
+  });
+
+}
 
 // PRAGMA: Chrome History
 function searchChromeHistory(date) {
     // calculate timeline canvas top margin.
     var heiStr = $('#timeline').css('height');
     heiStr = heiStr.substring(0, heiStr.length - 2);
-    heiInt = parseInt(heiStr);
+    heiInt = parseInt(heiStr, 10);
     heiInt = heiInt - 120;
     // TODO: change maxResults after developing process.
     chrome.history.search({
@@ -53,6 +73,7 @@ function searchChromeHistory(date) {
         if(data[key]) {
           data[key].count += 1;
         } else {
+            //visitItem = getVistItem(r, date);
             event = {
               dates: [new Date(r.lastVisitTime)],
               title: r.title,
@@ -85,9 +106,9 @@ function searchChromeHistory(date) {
 function changePage(ele) {
   //  setting only current page is visible
   ele.find("div[id^=page]").hide();
-  ele.find("div[id=page"+ paginate.current +"]").show();
+  ele.find("div[id=page"+ pagination.current +"]").show();
   $("a[href^='#page']").removeAttr('class');
-  $("a[href^='#page"+ paginate.current +"']").attr('class', 'active');
+  $("a[href^='#page"+ pagination.current +"']").attr('class', 'active');
 }
 
 function paginate(ele) {
@@ -98,21 +119,25 @@ function paginate(ele) {
     display: 10,
     current: 1
   };
+  // clean old link
+  var linksDiv = ($("#links").length === 0) ? $("<div id='links'></div>") : $("#links");
+  linksDiv.empty();
   // # of pages
   var pageSize = Math.ceil(counts / pagination.display);
-  var pages = new Array();
+  var pages = [];
+  var lis = ele.find('li');
   // puts li elements to pages array and wrap into a div
   for (var i = 0; i < pageSize; i += 1) {
-    pages[i] = ele.find('li:lt(' + pagination.display + ')');
+    pages[i] = lis.slice(i * pagination.display, (i+1) * pagination.display);
     pages[i].wrapAll("<div id='page" + (i + 1) +"'></div>");
     $("<a href=#page" + (pageSize - i) + ">" + (pageSize - i) + "</a>").insertAfter(ele);
   }
 
   // create page links
-  $("a[href^='#page']").wrapAll("<div id='links'></div>");
+  $("a[href^='#page']").wrapAll(linksDiv);
   $("a[href^='#page']").bind('click', function(e){
     e.preventDefault();
-    paginate.current = $(this).text();
+    pagination.current = $(this).text();
     changePage(ele);
   });
   //  setting only current page is visible
@@ -128,7 +153,7 @@ window.onload = function() {
     selectedItems.each(function(idx) {
         types.push($(selectedItems[idx]).val());
       });
-    var dateStr = ($("#timeline-date").val() == "") ? $("#timeline-date").attr("placeholder") : $("#timeline-date").val();
+    var dateStr = ($("#timeline-date").val() === "") ? $("#timeline-date").attr("placeholder") : $("#timeline-date").val();
     var date = new Date(dateStr);
     ChromeHistory.search(types, keyword, date, function() {
       // display
@@ -144,8 +169,8 @@ window.onload = function() {
         label.append(divT);
         // link
         var divL = $('<div>');
-        divT.attr('class', 'title');
-        divT.css('background-image', 'chrome://favicon/' + item.url);
+        divL.attr('class', 'title');
+        divL.css('background-image', 'url(chrome://favicon/' + item.url + ')');
         var link = $('<a>').attr({
           href: item.url,
           title: item.title
