@@ -25,15 +25,14 @@
     $("#timeline-date").attr("placeholder", $.datepicker.formatDate('mm/dd/yy', today));
     $("#timeline-date").datepicker({
       onSelect: function(dateText, inst) {
-        console.log(dateText);
         var selectedDate = new Date(dateText);
-        searchChromeHistory(selectedDate);
+        ChromeHistory.timelineSearch(selectedDate);
       }});
     // set #timeline half height of window
     $("#timeline, #search").css('height', window.screen.height / 2);
     $("#icon, #result").css('height', $(window).height() - $("#timeline").height());
     stripTime(today);
-    searchChromeHistory(today);
+    ChromeHistory.timelineSearch(today);
   });
   </script>
 </head>

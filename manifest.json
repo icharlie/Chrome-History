@@ -1,7 +1,7 @@
 {
   "name": "Chrome History",
   "version": "1.0",
-  "manifest_version": 1,
+  "manifest_version": 2,
   "description": "Visualized Chrome History",
   "background": { 
     "page": "background.html"

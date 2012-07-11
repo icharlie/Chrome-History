@@ -190,8 +190,8 @@ var Chronoline = {
         mode: CHRONOLINE_MODE.MONTH_YEAR,
         // icon setting
         icon: {
-            width: 15,
-            height: 15
+            width: 20,
+            height: 20
         }
     },
     
@@ -594,11 +594,17 @@ var Chronoline = {
                 if (event.dates.length == 1) { // it's a single point
                     if (event.icon) {
                         // FIXME: change badge style
-                        upperY = upperY - t['icon'].height - t.eventMargin - 8
+                        var radius = 8;
+                        upperY = upperY - t['icon'].height - t.eventMargin - 10 - (radius / 2);
                         elem = t.paper.image(event.icon, startX, upperY,  t['icon'].width, t['icon'].height);
-                        badge = t.paper.text(startX + t['icon'].width - 2, upperY, event.count ? event.count : 1);
-                        badge.attr('fill', '#f00');
-                        badge.attr('font-size', 12);
+                        circle = t.paper.circle(startX + t['icon'].width + 2, upperY - 5,  radius).attr({
+                          fill: '#979CA0',
+                          stroke: "none"
+                        });
+                        badge = t.paper.text(startX + t['icon'].width + 2, upperY - 5, event.count ? event.count : 1).attr({
+                          fill: '#fff',
+                          'font-size': 12
+                        });
                     } else {
                         elem = t.paper.circle(startX, upperY + t.circleRadius, t.circleRadius).attr(t.eventAttrs);
                     }

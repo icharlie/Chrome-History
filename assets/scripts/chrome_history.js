@@ -1,108 +1,100 @@
-var ChromeHistory = {
-  name: 'Chrome History',
-  historyItems: null,
-  // TODO: types property is not work now
-  search: function (types, text, date, callback) {
-    stripTime(date);
-    chrome.history.search({
-      'text': text,
-      'startTime': date.getTime(),
-      'endTime': date.getTime() + DAY_IN_MILLISECONDS
-      },  
-      function(historyItems){
-        ChromeHistory.historyItems = historyItems;
-        if (callback) {
-          callback.apply(this);
+( function (window) {
+  var ChromeHistory = {
+    name: 'Chrome History',
+    historyItems: null,
+    // TODO: types property is not work now
+    // PRAGMA: search chrome history for search button
+    search: function (types, text, date, callback) {
+      stripTime(date);
+      chrome.history.search({
+        'text': text,
+        'startTime': date.getTime(),
+        'endTime': date.getTime() + DAY_IN_MILLISECONDS
+        },  
+        function(historyItems){
+          ChromeHistory.historyItems = historyItems;
+          if (callback) {
+            callback.apply(this);
+          }
+        });
+    },
+    // PRAGMA: search chrome history for timeline
+    timelineSearch: function(date) {
+      // calculate timeline canvas top margin.
+      var heiStr = $('#timeline').css('height');
+      heiStr = heiStr.substring(0, heiStr.length - 2);
+      heiInt = parseInt(heiStr, 10);
+      heiInt = heiInt - 120;
+      // TODO: change maxResults after developing process.
+      chrome.history.search({
+        'text': '',
+        'startTime': date.getTime(),
+        'endTime': date.getTime() + DAY_IN_MILLISECONDS,
+        'maxResults': 800
+      }, function(result) {
+        var data = {};
+        var events = [];
+        result.forEach(function(r) {
+          var event = null;
+          var uri = URI(r.url);
+          var key = uri.scheme() + '://' + uri.host();
+          if(data[key]) {
+            data[key].count += 1;
+          } else {
+              //var visitItem = getVisitItem(r, date);
+              //var visitDate = visitItem ? new Date(visitItem.visitTime) : new Date(r.lastVisitTime);
+              var visitDate = new Date(r.lastVisitTime);
+              event = {
+                dates: [visitDate],
+                title: r.title + '[' + ChromeHistory.formatDate(visitDate) + ']',
+                icon: 'chrome://favicon/' + r.url,
+                count: 1
+                };
+              data[key] = event;
+          }
+        });
+        for(var url in data) {
+          events.push(data[url]);
         }
-      });
-  }};
+        // PRAGMA: Timeline
+        $("#timeline-chart").empty();
+        
+        var timeline = Chronoline.create(document.getElementById("timeline-chart"), events, {
+          animated: true,
+          tooltips: true,
+          topMargin: heiInt,
+          scrollable: false,
+          startDate: date,
+          subSubLabelAttrs: {'font-size': '18pt'},
+          mode: CHRONOLINE_MODE.HOUR_DAY
+        });
 
-function formateDate (date) {
-  var hrs = date.getHours();
-  var mins = date.getMinutes();
-  if (hrs > 12) {
-    hrs = hrs - 12;
-  }
-  if (mins < 10) {
-    mins = "0" + mins;
-  }
+      });    
+    },
 
-  if (date.getHours() >= 12) {
-    return hrs + ":" + mins + " PM";
-  } else {
-    return hrs + ":" + mins + " AM";    
-  }
-}
-
-function getVistItem(historyItem, date) {
-  var visitItem = [];
-  var initTime = date.getTime();
-  var endTime = date.getTime() + DAY_IN_MILLISECONDS;
-  chrome.history.getVisits({url: historyItem.url}, function(result) {  
-    result.forEach(function(r){
-            var curDate = new Date(r.visitTime);
-      var curTime = curDate.getTime() ;
-      if (curTime >= initTime  && curTime <= endTime ) {
-        visitTime.push(r);
+    formatDate: function(date){
+      var hrs = date.getHours();
+      var mins = date.getMinutes();
+      if (hrs > 12) {
+        hrs = hrs - 12;
       }
-    }); 
-  });
-
-}
-
-// PRAGMA: Chrome History
-function searchChromeHistory(date) {
-    // calculate timeline canvas top margin.
-    var heiStr = $('#timeline').css('height');
-    heiStr = heiStr.substring(0, heiStr.length - 2);
-    heiInt = parseInt(heiStr, 10);
-    heiInt = heiInt - 120;
-    // TODO: change maxResults after developing process.
-    chrome.history.search({
-      'text': '',
-      'startTime': date.getTime(),
-      'endTime': date.getTime() + DAY_IN_MILLISECONDS,
-      'maxResults': 800
-    }, function(result) {
-      var data = {};
-      var events = [];
-      result.forEach(function(r) {
-        var event = null;
-        var uri = URI(r.url);
-        var key = uri.scheme() + '://' + uri.host();
-        if(data[key]) {
-          data[key].count += 1;
-        } else {
-            //visitItem = getVistItem(r, date);
-            event = {
-              dates: [new Date(r.lastVisitTime)],
-              title: r.title,
-              icon: 'chrome://favicon/' + r.url,
-              count: 1
-              };
-            data[key] = event;
-        }
-      });
-      for(var url in data) {
-        events.push(data[url]);
+      if (mins < 10) {
+        mins = "0" + mins;
       }
-      // PRAGMA: Timeline
-      $("#timeline-chart").empty();
-      
-      var timeline = Chronoline.create(document.getElementById("timeline-chart"), events, {
-        animated: true,
-        tooltips: true,
-        topMargin: heiInt,
-        scrollable: false,
-        startDate: date,
-        subSubLabelAttrs: {'font-size': '18pt'},
-        mode: CHRONOLINE_MODE.HOUR_DAY
-      });
 
-    });
-}
+      if (date.getHours() >= 12) {
+        return hrs + ":" + mins + " PM";
+      } else {
+        return hrs + ":" + mins + " AM";    
+      }
+    }
+  };
 
+  // Expose ChromeHistory to the global object
+  window.ChromeHistory = ChromeHistory;
+})(window);
 
+// PRAGMA: global function
 function changePage(ele) {
   //  setting only current page is visible
   ele.find("div[id^=page]").hide();
@@ -144,6 +136,22 @@ function paginate(ele) {
   changePage(ele);
 }
 
+function getVisitItem(historyItem, date) {
+  var visitItems = [];
+  var initTime = date.getTime();
+  var endTime = date.getTime() + DAY_IN_MILLISECONDS;
+  chrome.history.getVisits({url: historyItem.url}, function(result) {  
+    result.forEach(function(r){
+      var curDate = new Date(r.visitTime);
+      var curTime = curDate.getTime() ;
+      if (curTime >= initTime  && curTime <= endTime ) {
+        visitItems.push(r);
+      }
+    }); 
+  });
+  return visitItems[0];
+}
+
 window.onload = function() {
   $("#search-button").click(function() {
     $("#result-list").empty();
@@ -157,7 +165,6 @@ window.onload = function() {
     var date = new Date(dateStr);
     ChromeHistory.search(types, keyword, date, function() {
       // display
-      // TODO: paginate
       ChromeHistory.historyItems.forEach(function(item) {
         var elem = $('<li>');
         var label = $('<label>');
@@ -165,7 +172,10 @@ window.onload = function() {
         // Time
         var divT = $('<div>');
         divT.attr('class', 'time');
-        divT.append(formateDate(new Date(item.lastVisitTime)));
+        var visitItem = getVisitItem(item, date);
+        // FIXME: get the time by date
+        var visitDate = visitItem ? new Date(visitItem.visitTime) : new Date(item.lastVisitTime);
+        divT.append(ChromeHistory.formatDate(visitDate));
         label.append(divT);
         // link
         var divL = $('<div>');
