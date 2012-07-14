@@ -1,3 +1,5 @@
+var CHRONOLINE_MODE = { 'MONTH_YEAR': 0, 'HOUR_DAY': 1};
+(function(window){
 // chronoline.js
 // by Kevin Leung for Zanbato, https://zanbato.com
 // MIT license at https://github.com/StoicLoofah/chronoline.js/blob/master/LICENSE.md
@@ -13,9 +15,6 @@ DAY_IN_MINUTES = 1440;
 
 var monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-var CHRONOLINE_MODE = { 'MONTH_YEAR': 0, 'HOUR_DAY': 1};
-
-
 var  requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame ||
 function(callback, element) { return window.setTimeout(function() { callback(+new Date());}, 1000 / 60);};
 
@@ -27,12 +26,7 @@ function addElemClass(paperType, node, newClass) {
     }
 }
 
-function stripTime(date) {
-    date.setHours(0);
-    date.setMinutes(0);
-    date.setSeconds(0);
-    date.setMilliseconds(0);
-}
+
 
 function formatDate(date, formatString) {
     // done in the style of c's strftime
@@ -107,8 +101,8 @@ function forwardWeek(date) {
 
 
 var Chronoline = {
-    
-    defaults: {
+    defaults: (function (){
+      return {
         defaultStartDate: null,
         // the date furthest to the left on load. Defaults to today
         startDate: null,
@@ -120,6 +114,8 @@ var Chronoline = {
         timelinePadding: 0,
         // in ms. Adds this much time to the front and back to get some space
         topMargin: 40,
+        // TODO: add description
+        leftMargin: 25,
         // overhead space on the canvas. useful for additional content
         eventHeight: 5,
         // how tall event events are
@@ -190,88 +186,102 @@ var Chronoline = {
         mode: CHRONOLINE_MODE.MONTH_YEAR,
         // icon setting
         icon: {
-            width: 20,
-            height: 20
+            width: 15,
+            height: 15
         }
-    },
+      };
+    })(),
     
+    drawBaseline: function() {
+      var t = this;
+      var baselineX = t.paper.path('M' + t.dateLineX + ',' + t.dateLineY + 'L' + t.visibleWidth + ',' + t.dateLineY);
+      if (t.mode == CHRONOLINE_MODE.HOUR_DAY) {
+        var baselineY = t.paper.path('M' + t.dateLineX + ',' + t.dateLineY + 'L' + t.dateLineX + ',0');
+        baselineY.attr('stroke', t.hashColor);
+      }
+      baselineX.attr('stroke', t.hashColor);
+    },
+
     drawLabelsHelper: function(start, end) {
       var t = Chronoline;
-      var dateLineY = t.totalHeight - t.dateLabelHeight - 5;
       switch (t.mode) {
       case CHRONOLINE_MODE.MONTH_YEAR:
-        {
-            var startMs = start;
-            var endMs = end;
-            for (var curMs = startMs; curMs < endMs; curMs += DAY_IN_MILLISECONDS) {
-                var curDate = new Date(curMs);
-                var day = curDate.getUTCDate();
-                var x = t.msToPx(curMs);
-
-                // the little hashes
-                if (t.hashInterval == null || t.hashInterval(curDate)) {
-                    var hash = t.paper.path('M' + x + ',' + dateLineY + 'L' + x + ',' + t.bottomHashY);
-                    hash.attr('stroke', t.hashColor);
-                }
-
-                // the labels directly below the hashes
-                if (t.labelInterval == null || t.labelInterval(curDate)) {
-                    var displayDate = String(day);
-                    if (displayDate.length == 1) displayDate = '0' + displayDate;
-
-                    var label = t.paper.text(x, t.labelY, displayDate);
-                    label.attr(t.fontAttrs);
-                }
-
-                // special markers for today
-                if (t.markToday && curMs == t.today.getTime()) {
-                    if (t.markToday == 'labelBox') {
-                        label.attr({
-                            'text': label.attr('text') + '\n' + formatDate(curDate, '%b').toUpperCase(),
-                            'font-size': t.fontAttrs['font-size'] + 2,
-                            'y': t.bottomHashY + t.fontAttrs['font-size'] + 5
-                        });
-                        var bbox = label.getBBox();
-                        var labelBox = t.paper.rect(bbox.x - 2, bbox.y - 2, bbox.width + 4, bbox.height + 4);
-                        labelBox.attr('fill', '90-#f4f4f4-#e8e8e8');
-                        labelBox.insertBefore(label);
-                    } else if (t.markToday == 'line') {
-                        var line = t.paper.path('M' + x + ',0L' + x + ',' + dateLineY);
-                        line.attr(t.todayAttrs);
-                    }
-                }
-
-                // sublabels. These can float
-                if (day == 1 && t.subLabel == 'month') {
-                    var subLabel = t.paper.text(x, t.subLabelY, formatDate(curDate, '%b').toUpperCase());
-                    subLabel.attr(t.fontAttrs);
-                    subLabel.attr(t.subLabelAttrs);
-                    if (t.floatingSubLabels) {
-                        // bounds determine how far things can float
-                        subLabel.data('left-bound', x);
-                        var endOfMonth = new Date(Date.UTC(curDate.getUTCFullYear(), curDate.getUTCMonth() + 1, 0));
-                        subLabel.data('right-bound', Math.min((endOfMonth.getTime() - t.startTime) * t.pxRatio - 5, t.totalWidth));
-                        t.floatingSet.push(subLabel);
-                    }
-                }
-            }
-            break;
-        }
-      case CHRONOLINE_MODE.HOUR_DAY:
-        {
-            var interval = t.visibleWidth / 24;
-            for (var cur = start, val = start; cur < t.visibleWidth; cur += interval, val += 1) {
-                x = cur + 4;
-                var hash = t.paper.path('M' + x + ',' + dateLineY + 'L' + x + ',' + t.bottomHashY);
+        var startMs = start;
+        var endMs = end;
+        for (var curMs = startMs; curMs < endMs; curMs += DAY_IN_MILLISECONDS) {
+            var curDate = new Date(curMs);
+            var day = curDate.getUTCDate();
+            var x = t.msToPx(curMs);
+            var label;
+            // the little hashes
+            if (t.hashInterval === null || t.hashInterval(curDate)) {
+                var hash = t.paper.path('M' + x + ',' + t.dateLineY + 'L' + x + ',' + t.bottomHashY);
                 hash.attr('stroke', t.hashColor);
-                var label = t.paper.text(x, t.labelY, String(val));
+            }
+
+            // the labels directly below the hashes
+            if (t.labelInterval === null || t.labelInterval(curDate)) {
+                var displayDate = String(day);
+                if (displayDate.length == 1) displayDate = '0' + displayDate;
+
+                label = t.paper.text(x, t.labelY, displayDate);
                 label.attr(t.fontAttrs);
             }
-            x = t.visibleWidth - 4;
-            var hash = t.paper.path('M' + x + ',' + dateLineY + 'L' + x + ',' + t.bottomHashY);
-            hash.attr('stroke', t.hashColor);
-            var label = t.paper.text(x, t.labelY, String(0));
-            label.attr(t.fontAttrs);
+
+            // special markers for today
+            if (t.markToday && curMs == t.today.getTime()) {
+                if (t.markToday === 'labelBox') {
+                    label.attr({
+                        'text': label.attr('text') + '\n' + formatDate(curDate, '%b').toUpperCase(),
+                        'font-size': t.fontAttrs['font-size'] + 2,
+                        'y': t.bottomHashY + t.fontAttrs['font-size'] + 5
+                    });
+                    var bbox = label.getBBox();
+                    var labelBox = t.paper.rect(bbox.x - 2, bbox.y - 2, bbox.width + 4, bbox.height + 4);
+                    labelBox.attr('fill', '90-#f4f4f4-#e8e8e8');
+                    labelBox.insertBefore(label);
+                } else if (t.markToday == 'line') {
+                    var line = t.paper.path('M' + x + ',0L' + x + ',' + t.dateLineY);
+                    line.attr(t.todayAttrs);
+                }
+            }
+
+            // sublabels. These can float
+            if (day == 1 && t.subLabel == 'month') {
+                var subLabel = t.paper.text(x, t.subLabelY, formatDate(curDate, '%b').toUpperCase());
+                subLabel.attr(t.fontAttrs);
+                subLabel.attr(t.subLabelAttrs);
+                if (t.floatingSubLabels) {
+                    // bounds determine how far things can float
+                    subLabel.data('left-bound', x);
+                    var endOfMonth = new Date(Date.UTC(curDate.getUTCFullYear(), curDate.getUTCMonth() + 1, 0));
+                    subLabel.data('right-bound', Math.min((endOfMonth.getTime() - t.startTime) * t.pxRatio - 5, t.totalWidth));
+                    t.floatingSet.push(subLabel);
+                }
+            }
+        }
+        break;
+      case CHRONOLINE_MODE.HOUR_DAY:
+        t.intervalX = (t.visibleWidth - t.dateLineX) / 24;
+        t.intervalY = (t.totalHeight - 50) / 61; // FIXME get the right height
+        var posX, grid, labelX;
+        // draw X
+        for (cur = start, val = start; cur < t.visibleWidth; cur += t.intervalX, val += 1) {
+            posX = cur + t.dateLineX;
+            grid = t.paper.path('M' + posX + ',' + t.dateLineY + 'L' + posX + ',' + t.bottomHashY);
+            grid.attr('stroke', t.hashColor);
+            if (val === 24) val = 0;
+            labelX = t.paper.text(posX, t.labelY, String(val));
+            grid.attr(t.fontAttrs);
+        }
+        // draw Y
+        posX = t.dateLineX - 15;
+        for (cur = t.dateLineY, val = 0; cur > 0; cur -= t.intervalY, val += 1) {
+          posY = cur;
+          grid = t.paper.path('M' + t.dateLineX + ',' + posY + 'L' + (t.dateLineX + 5) + ',' + posY);
+          grid.attr('stroke', t.hashColor);
+          labelY = t.paper.text(posX, posY, String(val));
+          grid.attr(t.fontAttrs);
         }
       }
     },
@@ -289,7 +299,7 @@ var Chronoline = {
           newStartDate = new Date(Date.UTC(newStartDate.getUTCFullYear(), newStartDate.getUTCMonth(), 1));
           var newStartMs = newStartDate.getTime();
           var newEndDate = new Date(t.pxToMs(Math.min(t.totalWidth, leftPxPos + 2 * t.visibleWidth)));
-          stripTime(newEndDate);
+          Common.stripTime(newEndDate);
           var newEndMs = newEndDate.getTime();
 
           if (t.drawnStartMs === null) { // first time
@@ -314,15 +324,125 @@ var Chronoline = {
           }
           break;
         case CHRONOLINE_MODE.HOUR_DAY:
-          //var newStartPx = Math.max(0, leftPxPos - t.visibleWidth);
-          //var newEndPx = Math.min(t.totalWidth, leftPxPos + 2 * t.visibleWidth);
           t.drawLabelsHelper(0, 24);
           break;
         default:
           break;
       }
     },
-    
+
+    // PRAGMA: drawing events
+    drawEvents: function(t) {
+      for (var row = 0; row < t.eventRows.length; row++) {
+          var upperY = t.totalHeight - t.dateLabelHeight - (row + 1) * (t.eventMargin + t.eventHeight);
+          for (var col = 0; col < t.eventRows[row].length; col++) {
+              var event = t.eventRows[row][col];
+              var startX;
+              // TODO: after implemented mode register, move to regist function
+              if (t.mode == CHRONOLINE_MODE.MONTH_YEAR) {
+                  startX = (event.dates[0].getTime() - t.startTime) * t.pxRatio;
+              }
+              if (t.mode == CHRONOLINE_MODE.HOUR_DAY) {
+                  var time = event.dates[0].getHours() * 60 + event.dates[0].getMinutes();
+                  startX =  time * t.pxRatio;
+              }
+              var badge = null;
+              if (event.dates.length == 1) { // it's a single point
+                  if (event.icon) {
+                      // FIXME: change badge style
+                      var radius = 8;
+                      upperY = upperY - t.icon.height - t.eventMargin - 10 - (radius / 2);
+                      elem = t.paper.image(event.icon, startX, upperY,  t.icon.width, t.icon.height);
+                      circle = t.paper.circle(startX + t.icon.width + 2, upperY - 5,  radius).attr({
+                        fill: '#979CA0',
+                        stroke: "none"
+                      });
+                      badge = t.paper.text(startX + t.icon.width + 2, upperY - 5, event.count ? event.count : 1).attr({
+                        fill: '#fff',
+                        'font-size': 12
+                      });
+                  } else {
+                      elem = t.paper.circle(startX, upperY + t.circleRadius, t.circleRadius).attr(t.eventAttrs);
+                  }
+              } else { // it's a range
+                  _width = (getEndDate(event.dates) - event.dates[0]) * t.pxRatio;
+                  // left rounded corner
+                  var leftCircle = t.paper.circle(startX, upperY + t.circleRadius, t.circleRadius).attr(t.eventAttrs);
+                  if (typeof event.attrs != "undefined") {
+                      leftCircle.attr(event.attrs);
+                  }
+                  addElemClass(t.paperType, leftCircle.node, 'chronoline-event');
+                  // right rounded corner
+                  rightCircle = t.paper.circle(startX + _width, upperY + t.circleRadius, t.circleRadius).attr(t.eventAttrs);
+                  if (typeof event.attrs != "undefined") {
+                      rightCircle.attr(event.attrs);
+                  }
+                  addElemClass(t.paperType, rightCircle.node, 'chronoline-event');
+                  elem = t.paper.rect(startX, upperY, _width, t.eventHeight).attr(t.eventAttrs);
+              }
+
+              if (typeof event.attrs != "undefined") {
+                  elem.attr(event.attrs);
+              }
+              addElemClass(t.paperType, elem.node, 'chronoline-event');
+
+              elem.attr('title', event.title);
+              if (t.tooltips && !jQuery.browser.msie) {
+                  var description = event.description;
+                  var title = event.title;
+                  if (typeof description === "undefined" || description === '') {
+                      description = title;
+                      title = '';
+                  }
+                  jQuery(elem.node).parent().qtip({
+                      content: {
+                          title: title,
+                          text: description
+                      },
+                      position: {
+                          my: 'top left',
+                          target: 'mouse',
+                          viewport: jQuery(window),
+                          // Keep it on-screen at all times if possible
+                          adjust: {
+                              x: 10,
+                              y: 10
+                          }
+                      },
+                      hide: {
+                          fixed: true // Helps to prevent the tooltip from hiding ocassionally when tracking!
+                      },
+                      style: {
+                          classes: 'ui-tooltip-shadow ui-tooltip-dark ui-tooltip-rounded'
+                      }
+                  });
+              }
+              if (t.sections !== null && t.sectionLabelsOnHover) {
+                  // some magic here to tie the event back to the section label element
+                  var originalIndex = event.section;
+                  if (typeof originalIndex != "undefined") {
+                      var newIndex = 0;
+                      for (i = 0; i < t.sections.length; i++) {
+                          if (t.sections[i].section == originalIndex) {
+                              elem.data('sectionLabel', t.sectionLabelSet[i]);
+                              break;
+                          }
+                      }
+                      elem.hover(function() {
+                          this.data('sectionLabel').animate({
+                              opacity: 1
+                          }, 200);
+                      }, function() {
+                          this.data('sectionLabel').animate({
+                              opacity: 0
+                          }, 200);
+                      });
+                  }
+              }
+          }
+      }
+    },
+   
     create: function(domElement, events, options) {
         var defaults = Chronoline.defaults;
         var t = this;
@@ -364,7 +484,7 @@ var Chronoline = {
         if (t.mode == CHRONOLINE_MODE.MONTH_YEAR) {
             for (var i = 0; i < events.length; i++) {
                 for (var j = 0; j < events[i].dates.length; j++) {
-                    stripTime(events[i].dates[j]);
+                    Common.stripTime(events[i].dates[j]);
                 }
             }
         }
@@ -375,7 +495,7 @@ var Chronoline = {
         if (t.sections !== null) {
             for (var i = 0; i < t.sections.length; i += 1) {
                 for (var j = 0; j < t.sections[i].dates.length; j++) {
-                    stripTime(t.sections[i].dates[j]);
+                    Common.stripTime(t.sections[i].dates[j]);
                 }
             }
             t.sections.sort(t.sortEvents);
@@ -383,7 +503,7 @@ var Chronoline = {
         // CALCULATING MORE THINGS
         // generating relevant dates
         t.today = new Date(Date.now());
-        stripTime(t.today);
+        Common.stripTime(t.today);
 
         if (t.defaultStartDate == null) {
             t.defaultStartDate = t.today;
@@ -402,7 +522,7 @@ var Chronoline = {
             } else {
             }
         }
-        stripTime(t.startDate);
+        Common.stripTime(t.startDate);
 
         if (t.startDate > t.defaultStartDate) t.startDate = t.defaultStartDate;
         t.startDate = new Date(t.startDate.getTime() - t.timelinePadding);
@@ -423,10 +543,10 @@ var Chronoline = {
         }
         if (t.endDate < t.defaultStartDate) t.endDate = t.defaultStartDate;
         t.endDate = new Date(Math.max(t.endDate.getTime(), t.startDate.getTime() + t.visibleSpan) + t.timelinePadding)
-        stripTime(t.endDate);
+        Common.stripTime(t.endDate);
 
         // Filter events
-        var tmpEvents = [];
+        tmpEvents = [];
         for (var i = 0; i < events.length; i++) {
             var tmpDates = [];
             for (var j = 0; j < events[i].dates.length; j++) {
@@ -464,10 +584,10 @@ var Chronoline = {
         // 2 handy utility functions
         t.pxToMs = function(px) {
             return t.startTime + px / t.pxRatio;
-        }
+        };
         t.msToPx = function(ms) {
             return (ms - t.startTime) * t.pxRatio;
-        }
+        };
 
         // SPLIT THE DATES INTO THE ROW THAT THEY BELONG TO
         // TODO
@@ -516,60 +636,61 @@ var Chronoline = {
         // DRAWING
         t.floatingSet = t.paper.set();
         t.sectionLabelSet = t.paper.set();
-        // drawing sections
-        if (t.sections != null) {
-            for (var i = 0; i < t.sections.length; i++) {
-                var section = t.sections[i];
-                if (t.mode == CHRONOLINE_MODE.MONTH_YEAR) {
-                    var startX = (section.dates[0].getTime() - t.startTime) * t.pxRatio;
-                }
-                if (t.mode == CHRONOLINE_MODE.HOUR_DAY) {
-                    var startX = section.dates[0].getHour() * t.pxRatio;
-                }
-                var width = (section.dates[1] - section.dates[0]) * t.pxRatio;
-                var elem = t.paper.rect(startX, 0, width, t.totalHeight);
-                elem.attr('stroke-width', 0);
-                elem.attr('stroke', '#ffffff');
-                if (typeof section.attrs != "undefined") {
-                    elem.attr(section.attrs);
-                }
-                var sectionLabel = t.paper.text(startX + 10, 10, section.title);
-                sectionLabel.attr('text-anchor', 'start');
-                sectionLabel.attr(t.sectionLabelAttrs);
-                if (t.floatingSectionLabels) {
-                    // bounds determine how far things can float
-                    sectionLabel.data('left-bound', startX + 10);
-                    sectionLabel.data('right-bound', startX + width - sectionLabel.attr('width'));
-                    t.floatingSet.push(sectionLabel);
-                    t.sectionLabelSet.push(sectionLabel);
-                }
+        var elem;
+        // TODO: drawing sections
+        //if (t.sections !== null) {
+            //for (i = 0; i < t.sections.length; i++) {
+                //var section = t.sections[i];
+                //if (t.mode == CHRONOLINE_MODE.MONTH_YEAR) {
+                    //startX = (section.dates[0].getTime() - t.startTime) * t.pxRatio;
+                //}
+                //if (t.mode == CHRONOLINE_MODE.HOUR_DAY) {
+                    //startX = section.dates[0].getHour() * t.pxRatio;
+                //}
+                //var width = (section.dates[1] - section.dates[0]) * t.pxRatio;
+                //elem = t.paper.rect(startX, 0, width, t.totalHeight);
+                //elem.attr('stroke-width', 0);
+                //elem.attr('stroke', '#ffffff');
+                //if (typeof section.attrs != "undefined") {
+                    //elem.attr(section.attrs);
+                //}
+                //var sectionLabel = t.paper.text(startX + 10, 10, section.title);
+                //sectionLabel.attr('text-anchor', 'start');
+                //sectionLabel.attr(t.sectionLabelAttrs);
+                //if (t.floatingSectionLabels) {
+                    //// bounds determine how far things can float
+                    //sectionLabel.data('left-bound', startX + 10);
+                    //sectionLabel.data('right-bound', startX + width - sectionLabel.attr('width'));
+                    //t.floatingSet.push(sectionLabel);
+                    //t.sectionLabelSet.push(sectionLabel);
+                //}
 
-                elem.data('label', sectionLabel);
+                //elem.data('label', sectionLabel);
 
-                if (t.sectionLabelsOnHover) {
-                    elem.hover(function() {
-                        this.data('label').animate({
-                            opacity: 1
-                        }, 200);
-                    }, function() {
-                        this.data('label').animate({
-                            opacity: 0
-                        }, 200);
-                    });
-                    sectionLabel.hover(function() {
-                        this.animate({
-                            opacity: 1
-                        }, 200);
-                    }, function() {
-                        this.animate({
-                            opacity: 0
-                        }, 200);
-                    });
-                    sectionLabel.attr('opacity', 0);
-                }
+                //if (t.sectionLabelsOnHover) {
+                    //elem.hover(function() {
+                        //this.data('label').animate({
+                            //opacity: 1
+                        //}, 200);
+                    //}, function() {
+                        //this.data('label').animate({
+                            //opacity: 0
+                        //}, 200);
+                    //});
+                    //sectionLabel.hover(function() {
+                        //this.animate({
+                            //opacity: 1
+                        //}, 200);
+                    //}, function() {
+                        //this.animate({
+                            //opacity: 0
+                        //}, 200);
+                    //});
+                    //sectionLabel.attr('opacity', 0);
+                //}
 
-            }
-        }
+            //}
+        //}
 
         // put all of these in front of the sections
         t.sectionLabelSet.forEach(function(label) {
@@ -577,122 +698,15 @@ var Chronoline = {
         });
 
         // PRAGMA: drawing events
-        for (var row = 0; row < t.eventRows.length; row++) {
-            var upperY = t.totalHeight - t.dateLabelHeight - (row + 1) * (t.eventMargin + t.eventHeight);
-            for (var col = 0; col < t.eventRows[row].length; col++) {
-                var event = t.eventRows[row][col];
-                // TODO: after implemented mode register, move to regist function
-                if (t.mode == CHRONOLINE_MODE.MONTH_YEAR) {
-                    var startX = (event.dates[0].getTime() - t.startTime) * t.pxRatio;
-                }
-                if (t.mode == CHRONOLINE_MODE.HOUR_DAY) {
-                    var time = event.dates[0].getHours() * 60 + event.dates[0].getMinutes();
-                    var startX =  time * t.pxRatio;
-                }
-                var elem = null;
-                var badge = null;
-                if (event.dates.length == 1) { // it's a single point
-                    if (event.icon) {
-                        // FIXME: change badge style
-                        var radius = 8;
-                        upperY = upperY - t['icon'].height - t.eventMargin - 10 - (radius / 2);
-                        elem = t.paper.image(event.icon, startX, upperY,  t['icon'].width, t['icon'].height);
-                        circle = t.paper.circle(startX + t['icon'].width + 2, upperY - 5,  radius).attr({
-                          fill: '#979CA0',
-                          stroke: "none"
-                        });
-                        badge = t.paper.text(startX + t['icon'].width + 2, upperY - 5, event.count ? event.count : 1).attr({
-                          fill: '#fff',
-                          'font-size': 12
-                        });
-                    } else {
-                        elem = t.paper.circle(startX, upperY + t.circleRadius, t.circleRadius).attr(t.eventAttrs);
-                    }
-                } else { // it's a range
-                    var width = (getEndDate(event.dates) - event.dates[0]) * t.pxRatio;
-                    // left rounded corner
-                    var leftCircle = t.paper.circle(startX, upperY + t.circleRadius, t.circleRadius).attr(t.eventAttrs);
-                    if (typeof event.attrs != "undefined") {
-                        leftCircle.attr(event.attrs);
-                    }
-                    addElemClass(t.paperType, leftCircle.node, 'chronoline-event');
-                    // right rounded corner
-                    var rightCircle = t.paper.circle(startX + width, upperY + t.circleRadius, t.circleRadius).attr(t.eventAttrs);
-                    if (typeof event.attrs != "undefined") {
-                        rightCircle.attr(event.attrs);
-                    }
-                    addElemClass(t.paperType, rightCircle.node, 'chronoline-event');
-                    elem = t.paper.rect(startX, upperY, width, t.eventHeight).attr(t.eventAttrs);
-                }
-
-                if (typeof event.attrs != "undefined") {
-                    elem.attr(event.attrs);
-                }
-                addElemClass(t.paperType, elem.node, 'chronoline-event');
-
-                elem.attr('title', event.title);
-                if (t.tooltips && !jQuery.browser.msie) {
-                    var description = event.description;
-                    var title = event.title;
-                    if (typeof description == "undefined" || description == '') {
-                        description = title;
-                        title = '';
-                    }
-                    jQuery(elem.node).parent().qtip({
-                        content: {
-                            title: title,
-                            text: description
-                        },
-                        position: {
-                            my: 'top left',
-                            target: 'mouse',
-                            viewport: jQuery(window),
-                            // Keep it on-screen at all times if possible
-                            adjust: {
-                                x: 10,
-                                y: 10
-                            }
-                        },
-                        hide: {
-                            fixed: true // Helps to prevent the tooltip from hiding ocassionally when tracking!
-                        },
-                        style: {
-                            classes: 'ui-tooltip-shadow ui-tooltip-dark ui-tooltip-rounded'
-                        }
-                    });
-                }
-                if (t.sections != null && t.sectionLabelsOnHover) {
-                    // some magic here to tie the event back to the section label element
-                    var originalIndex = event.section;
-                    if (typeof originalIndex != "undefined") {
-                        var newIndex = 0;
-                        for (var i = 0; i < t.sections.length; i++) {
-                            if (t.sections[i].section == originalIndex) {
-                                elem.data('sectionLabel', t.sectionLabelSet[i]);
-                                break;
-                            }
-                        }
-                        elem.hover(function() {
-                            this.data('sectionLabel').animate({
-                                opacity: 1
-                            }, 200);
-                        }, function() {
-                            this.data('sectionLabel').animate({
-                                opacity: 0
-                            }, 200);
-                        });
-                    }
-                }
-            }
-        }
-
+        this.drawEvents(t);
         // calculated ahead of time
         // positions of baseline, subLabel
-        var dateLineY = t.totalHeight - t.dateLabelHeight - 5;
-        var baseline = t.paper.path('M0,' + dateLineY + 'L' + t.totalWidth + ',' + dateLineY);
-        baseline.attr('stroke', t.hashColor);
+        t.dateLineX = t.leftMargin;
+        t.visibleWidth = t.visibleWidth - t.dateLineX;
+        t.dateLineY = t.totalHeight - t.dateLabelHeight - 5;
+        this.drawBaseline();
 
-        t.bottomHashY = dateLineY + t.hashLength;
+        t.bottomHashY = t.dateLineY + t.hashLength;
         t.labelY = t.bottomHashY + t.fontAttrs['font-size'];
         t.subLabelY = t.bottomHashY + t.fontAttrs['font-size'] * 2 + t.subLabelMargin;
         t.subSubLabelY = t.subLabelY + t.fontAttrs['font-size'] + t.subSubLabelMargin;
@@ -704,7 +718,7 @@ var Chronoline = {
             var endYear = t.endDate.getFullYear();
             for (var year = t.startDate.getFullYear(); year <= endYear; year++) {
                 var curDate = new Date(year, 0, 1);
-                stripTime(curDate);
+                Common.stripTime(curDate);
                 var x = t.msToPx(curDate.getTime());
                 var subSubLabel = t.paper.text(x, t.subSubLabelY, formatDate(curDate, '%Y').toUpperCase());
                 subSubLabel.attr(t.fontAttrs);
@@ -713,150 +727,19 @@ var Chronoline = {
                     // bounds determine how far things can float
                     subSubLabel.data('left-bound', x);
                     var endOfYear = new Date(year, 11, 31);
-                    stripTime(endOfYear);
+                    Common.stripTime(endOfYear);
                     subSubLabel.data('right-bound', Math.min((endOfYear.getTime() - t.startTime) * t.pxRatio - 5, t.totalWidth));
                     t.floatingSet.push(subSubLabel);
                 }
             }
         }
         if (t.mode == CHRONOLINE_MODE.HOUR_DAY) {
-            var curDate = t.startDate;
             // position
             var x = t.visibleWidth / 2;
-            var subSubLabel = t.paper.text(x, t.subSubLabelY, formatDate(curDate, '%b %d'));
+            var subSubLabel = t.paper.text(x, t.subSubLabelY, formatDate(t.startDate, '%b %d'));
             subSubLabel.attr(t.fontAttrs);
             subSubLabel.attr(t.subSubLabelAttrs);
         }
-
-
-        // t.drawLabelsHelper = function(start, end) {
-        //             switch (t.mode) {
-        //             case CHRONOLINE_MODE.MONTH_YEAR:
-        //                 {
-        //                     var startMs = start;
-        //                     var endMs = end;
-        //                     for (var curMs = startMs; curMs < endMs; curMs += DAY_IN_MILLISECONDS) {
-        //                         var curDate = new Date(curMs);
-        //                         var day = curDate.getUTCDate();
-        //                         var x = t.msToPx(curMs);
-        // 
-        //                         // the little hashes
-        //                         if (t.hashInterval == null || t.hashInterval(curDate)) {
-        //                             var hash = t.paper.path('M' + x + ',' + dateLineY + 'L' + x + ',' + t.bottomHashY);
-        //                             hash.attr('stroke', t.hashColor);
-        //                         }
-        // 
-        //                         // the labels directly below the hashes
-        //                         if (t.labelInterval == null || t.labelInterval(curDate)) {
-        //                             var displayDate = String(day);
-        //                             if (displayDate.length == 1) displayDate = '0' + displayDate;
-        // 
-        //                             var label = t.paper.text(x, t.labelY, displayDate);
-        //                             label.attr(t.fontAttrs);
-        //                         }
-        // 
-        //                         // special markers for today
-        //                         if (t.markToday && curMs == t.today.getTime()) {
-        //                             if (t.markToday == 'labelBox') {
-        //                                 label.attr({
-        //                                     'text': label.attr('text') + '\n' + formatDate(curDate, '%b').toUpperCase(),
-        //                                     'font-size': t.fontAttrs['font-size'] + 2,
-        //                                     'y': t.bottomHashY + t.fontAttrs['font-size'] + 5
-        //                                 });
-        //                                 var bbox = label.getBBox();
-        //                                 var labelBox = t.paper.rect(bbox.x - 2, bbox.y - 2, bbox.width + 4, bbox.height + 4);
-        //                                 labelBox.attr('fill', '90-#f4f4f4-#e8e8e8');
-        //                                 labelBox.insertBefore(label);
-        //                             } else if (t.markToday == 'line') {
-        //                                 var line = t.paper.path('M' + x + ',0L' + x + ',' + dateLineY);
-        //                                 line.attr(t.todayAttrs);
-        //                             }
-        //                         }
-        // 
-        //                         // sublabels. These can float
-        //                         if (day == 1 && t.subLabel == 'month') {
-        //                             var subLabel = t.paper.text(x, t.subLabelY, formatDate(curDate, '%b').toUpperCase());
-        //                             subLabel.attr(t.fontAttrs);
-        //                             subLabel.attr(t.subLabelAttrs);
-        //                             if (t.floatingSubLabels) {
-        //                                 // bounds determine how far things can float
-        //                                 subLabel.data('left-bound', x);
-        //                                 var endOfMonth = new Date(Date.UTC(curDate.getUTCFullYear(), curDate.getUTCMonth() + 1, 0));
-        //                                 subLabel.data('right-bound', Math.min((endOfMonth.getTime() - t.startTime) * t.pxRatio - 5, t.totalWidth));
-        //                                 t.floatingSet.push(subLabel);
-        //                             }
-        //                         }
-        //                     }
-        //                     break;
-        //                 }
-        //             case CHRONOLINE_MODE.HOUR_DAY:
-        //                 {
-        //                     var interval = t.visibleWidth / 24;
-        //                     for (var cur = start, val = start; cur < t.visibleWidth; cur += interval, val += 1) {
-        //                         x = cur + 4;
-        //                         var hash = t.paper.path('M' + x + ',' + dateLineY + 'L' + x + ',' + t.bottomHashY);
-        //                         hash.attr('stroke', t.hashColor);
-        //                         var label = t.paper.text(x, t.labelY, String(val));
-        //                         label.attr(t.fontAttrs);
-        //                     }
-        //                     x = t.visibleWidth - 4;
-        //                     var hash = t.paper.path('M' + x + ',' + dateLineY + 'L' + x + ',' + t.bottomHashY);
-        //                     hash.attr('stroke', t.hashColor);
-        //                     var label = t.paper.text(x, t.labelY, String(0));
-        //                     label.attr(t.fontAttrs);
-        //                 }
-        //             }
-        //         }
-
-
-
-        // TODO: remove here, already move to outtier
-        // this actually draws labels. It calculates the set of labels to draw in-between
-        // what it currently has and needs to add
-        // TODO: after implemented mode register, move to regist function
-        // t.drawLabels = function(leftPxPos) {
-        //     switch (t.mode) {
-        //     case CHRONOLINE_MODE.MONTH_YEAR:
-        //         {
-        //             var newStartPx = Math.max(0, leftPxPos - t.visibleWidth);
-        //             var newEndPx = Math.min(t.totalWidth, leftPxPos + 2 * t.visibleWidth);
-        // 
-        //             var newStartDate = new Date(t.pxToMs(newStartPx));
-        //             newStartDate = new Date(Date.UTC(newStartDate.getUTCFullYear(), newStartDate.getUTCMonth(), 1));
-        //             var newStartMs = newStartDate.getTime();
-        //             var newEndDate = new Date(t.pxToMs(Math.min(t.totalWidth, leftPxPos + 2 * t.visibleWidth)));
-        //             stripTime(newEndDate);
-        //             var newEndMs = newEndDate.getTime();
-        // 
-        //             if (t.drawnStartMs == null) { // first time
-        //                 t.drawnStartMs = newStartMs;
-        //                 t.drawnEndMs = newEndMs;
-        //                 t.drawLabelsHelper(newStartMs, newEndMs);
-        //             } else if (newStartMs > t.drawnEndMs) { // new labels are to the right
-        //                 t.drawLabelsHelper(t.drawnEndMs, newEndMs);
-        //                 t.drawnEndMs = newEndMs;
-        //             } else if (newEndMs < t.drawnStartMs) { // to the left
-        //                 t.drawLabelsHelper(newStartMs, t.drawnStartMs);
-        //                 t.drawnStartMs = newStartMs;
-        //             } else { // overlap
-        //                 if (newStartMs < t.drawnStartMs) {
-        //                     t.drawLabelsHelper(newStartMs, t.drawnStartMs);
-        //                     t.drawnStartMs = newStartMs;
-        //                 }
-        //                 if (newEndMs > t.drawnEndMs) {
-        //                     t.drawLabelsHelper(t.drawnEndMs, newEndMs);
-        //                     t.drawnEndMs = newEndMs;
-        //                 }
-        //             }
-        //             break;
-        //         }
-        //     case CHRONOLINE_MODE.HOUR_DAY:
-        //         var newStartPx = Math.max(0, leftPxPos - t.visibleWidth);
-        //         var newEndPx = Math.min(t.totalWidth, leftPxPos + 2 * t.visibleWidth);
-        //         t.drawLabelsHelper(0, 24);
-        //     }
-        // 
-        // }
 
         t.isMoving = false;
         t.goToPx = function(finalLeft, isAnimated, isLabelsDrawn) {
@@ -886,7 +769,7 @@ var Chronoline = {
 
             // hide scroll buttons if you're at the end
             if (t.scrollable) {
-                if (finalLeft == 0) {
+                if (finalLeft === 0) {
                     t.leftControl.style.display = 'none';
                     t.isScrolling = false;
                 } else {
@@ -952,7 +835,7 @@ var Chronoline = {
 
         t.goToDate = function(date, position) {
             // position is negative for left, 0 for middle, 1 for right
-            stripTime(date);
+            Common.stripTime(date);
             if (position < 0) {
                 t.goToPx(-t.msToPx(date.getTime()));
             } else if (position > 0) {
@@ -1111,4 +994,6 @@ var Chronoline = {
         t.goToPx(getLeft(t.paperElem));
         t.myCanvas.style.height = t.totalHeight + 'px';
     }
-};
+  };
+  window.Chronoline = Chronoline;
+})(window)

@@ -5,7 +5,7 @@
     // TODO: types property is not work now
     // PRAGMA: search chrome history for search button
     buttonSearch: function (types, text, date, callback) {
-      stripTime(date);
+      Common.stripTime(date);
       chrome.history.search({
           'text': text,
           'startTime': date.getTime(),
@@ -58,12 +58,8 @@
       });
     },
     // PRAGMA: search chrome history for timeline
-    timelineSearch: function(date) {
+    drawTimeline: function(date, timeline_config) {
       // calculate timeline canvas top margin.
-      var heiStr = $('#timeline').css('height');
-      heiStr = heiStr.substring(0, heiStr.length - 2);
-      heiInt = parseInt(heiStr, 10);
-      heiInt = heiInt - 120;
       // TODO: change maxResults after developing process.
       chrome.history.search({
         'text': '',
@@ -99,7 +95,7 @@
                   for (var key in item) {
                     if (item[key].id === target.id) {
                       ChromeHistory.historyItems[key].visitTime = target.visitTime;
-                      delete queue[i];
+                      queue.splice(i, 1);
                     }
                   }
                 }
@@ -107,16 +103,8 @@
             });
           }
         }
-        var checkQuene = function (data) {
-          data.forEach( function (){
-            if (ele !== undefined)
-             return data; 
-          });
-          data = [];
-          return data;
-        };
         setTimeout( function () {
-          queue = checkQuene(queue);
+          //queue = checkQuene(queue);
           if (queue.length !== 0) {
             setTimeout(this, 500);
           } else{
@@ -132,6 +120,7 @@
             var event = null;
             var uri = URI(r.url);
             var date = new Date(r.visitTime);
+            // FIXME: key makes the last some events disapper, maybe be put into wrong group
             var key = date.getHours() + date.getMinutes() + uri.scheme() + '://' + uri.host();
             if(data[key]) {
               data[key].count += 1;
@@ -154,15 +143,7 @@
           // PRAGMA: Timeline
           $("#timeline-chart").empty();
           
-          var timeline = Chronoline.create(document.getElementById("timeline-chart"), events, {
-            animated: true,
-            tooltips: true,
-            topMargin: heiInt,
-            scrollable: false,
-            startDate: date,
-            subSubLabelAttrs: {'font-size': '18pt'},
-            mode: CHRONOLINE_MODE.HOUR_DAY
-          });
+          var timeline = Chronoline.create(document.getElementById("timeline-chart"), events, timeline_config);
         };
       });    
     },
@@ -249,7 +230,6 @@ function getVisitItem(historyItem, date) {
   });
 }
 
-
 function displaySearchHistoryResult(historyItems) {
   $("#result-list").empty();
   historyItems.forEach(function(item){
@@ -282,7 +262,8 @@ function displaySearchHistoryResult(historyItems) {
   paginate($("#result-list"));
 }
 
-window.onload = function() {
+$(document).ready(function() {
+  // PRAGMA: bind search history button click event
   $("#search-button").click(function() {
     $("#result-list").empty();
     var selectedItems = $("#catalog :checkbox:checked");
@@ -296,20 +277,31 @@ window.onload = function() {
     var allHistoryItems = [];
     ChromeHistory.buttonSearch(types, keyword, date, displaySearchHistoryResult);
   });
-};
-
-$(document).ready(function() {
+  var height = window.screen.height;
+  $("#timeline, #search").css('height', height / 2);
+  $("#icon, #result").css('height', height - $("#timeline").height());
+  var topMargin = (height / 2) - 80;
   var today = new Date();
+  Common.stripTime(today);
+  var timeline_config = {
+    animated: true,
+    tooltips: true,
+    topMargin: topMargin,
+    scrollable: false,
+    startDate: today,
+    subSubLabelAttrs: {'font-size': '18pt'},
+    mode: CHRONOLINE_MODE.HOUR_DAY
+  };
+
   // PRAGMA: datepicker
   $("#timeline-date").attr("placeholder", $.datepicker.formatDate('mm/dd/yy', today));
   $("#timeline-date").datepicker({
     onSelect: function(dateText, inst) {
       var selectedDate = new Date(dateText);
-      ChromeHistory.timelineSearch(selectedDate);
+      Common.stripTime(selectedDate);
+      timeline_config.startDate = selectedDate;
+      ChromeHistory.drawTimeline(selectedDate, timeline_config);
     }});
   // set #timeline half height of window
-  $("#timeline, #search").css('height', window.screen.height / 2);
-  $("#icon, #result").css('height', $(window).height() - $("#timeline").height());
-  stripTime(today);
-  ChromeHistory.timelineSearch(today);
+  ChromeHistory.drawTimeline(today, timeline_config);
 });
