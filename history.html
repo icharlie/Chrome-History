@@ -20,11 +20,22 @@
 <body>
   <div class="container container-fluid">
     <section class="row-fluid">
-      <div id="search" class="span2 right-line">
-<!--         <form id="serch-form" method="post" action class="search-field-container"> -->
+      <div id="icon" class="span2 right-line">
+        <h3>Icon Cloud</h3>
+      </div>
+      <div id="timeline" class="span10">
+        <label for="timeline-date">Date:</label>
+        <input type="text" name="timeline-date" id="timeline-date" value="" />
+        <div id="timeline-chart">
+          
+        </div>
+      </div>
+    </section>
+    <hr/>
+    <section class="row-fluid">
+<div id="search" class="span2 right-line">
           <input type="search" id="search-field">
           <input type="submit" name="search" value="Search history" id="search-button">
-<!--         </form> -->
         <ol id="catalog" style="list-style:none;">
           <li>
             <input type="checkbox" name="gmail" value="gmail" id="gmail">
@@ -63,19 +74,6 @@
             </label>
           </li>
         </ol>
-      </div>
-      <div id="timeline" class="span10">
-        <label for="timeline-date">Date:</label>
-        <input type="text" name="timeline-date" id="timeline-date" value="" />
-        <div id="timeline-chart">
-          
-        </div>
-      </div>
-    </section>
-    <hr/>
-    <section class="row-fluid">
-      <div id="icon" class="span2 right-line">
-        <h3>Icon Cloud</h3>
       </div>
       <div id="result" class="span9">
         <h3>Result</h3>

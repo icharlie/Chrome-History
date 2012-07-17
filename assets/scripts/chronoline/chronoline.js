@@ -97,10 +97,9 @@ function forwardWeek(date) {
 }
 
 
-
 var Chronoline = {
-    defaults: (function (){
-      return {
+  config: (function () {
+    return {
         defaultStartDate: null,
         // the date furthest to the left on load. Defaults to today
         startDate: null,
@@ -189,11 +188,11 @@ var Chronoline = {
             width: 15,
             height: 15
         }
-      };
-    })(),
+    };
+      })(),
     
     drawBaseline: function() {
-      var t = this;
+      var t = this.config;
       var baselineX = t.paper.path('M' + t.dateLineX + ',' + t.dateLineY + 'L' + t.visibleWidth + ',' + t.dateLineY);
       if (t.mode == CHRONOLINE_MODE.HOUR_DAY) {
         var baselineY = t.paper.path('M' + t.dateLineX + ',' + t.dateLineY + 'L' + t.dateLineX + ',0');
@@ -203,7 +202,7 @@ var Chronoline = {
     },
 
     drawLabelsHelper: function(start, end) {
-      var t = Chronoline;
+      var t = this.config;
       switch (t.mode) {
       case CHRONOLINE_MODE.MONTH_YEAR:
         var startMs = start;
@@ -264,36 +263,57 @@ var Chronoline = {
       case CHRONOLINE_MODE.HOUR_DAY:
         var posX, grid, labelX;
         // draw X
-        for (cur = (start + t.hashMargin), val = start; val < 25; cur += t.intervalX, val += 1) {
-            posX = cur + t.dateLineX;
-            grid = t.paper.path('M' + posX + ',' + t.dateLineY + 'L' + posX + ',' + t.bottomHashY);
-            grid.attr('stroke', t.hashColor);
-            if (val === 24) {
-              labelX = t.paper.text(posX, t.labelY, String(0));
-              grid.attr(t.fontAttrs);
-            } else {
-              labelX = t.paper.text(posX, t.labelY, String(val));
-              grid.attr(t.fontAttrs);
-            }
-        }
-        // draw Y
-        posX = t.dateLineX - 15;
-        for (cur = t.dateLineY - (t.hashMargin), val = 0; val < 61; cur -= t.intervalY, val += 1) {
-          posY = cur;
-          grid = t.paper.path('M' + t.dateLineX + ',' + posY + 'L' + (t.dateLineX + 5) + ',' + posY);
+        for (cur = (start + t.hashMargin), val = start; val < 61; cur += t.intervalX, val += 1) {
+          posX = cur + t.dateLineX;
+          grid = t.paper.path('M' + posX + ',' + t.dateLineY + 'L' + posX + ',' + t.bottomHashY);
           grid.attr('stroke', t.hashColor);
           if ((val % 15) === 0) {
-            //grid = t.paper.path('M' + t.dateLineX + ',' + posY + 'L' + (t.dateLineX + 5) + ',' + posY);
-            //grid.attr('stroke', t.hashColor);
-            labelY = t.paper.text(posX, posY, String(val));
+            labelX = t.paper.text(posX, t.labelY, String(val));
             grid.attr(t.fontAttrs);
           }
         }
+        //for (cur = (start + t.hashMargin), val = start; val < 25; cur += t.intervalX, val += 1) {
+            //posX = cur + t.dateLineX;
+            //grid = t.paper.path('M' + posX + ',' + t.dateLineY + 'L' + posX + ',' + t.bottomHashY);
+            //grid.attr('stroke', t.hashColor);
+            //if (val === 24) {
+              //labelX = t.paper.text(posX, t.labelY, String(0));
+              //grid.attr(t.fontAttrs);
+            //} else {
+              //labelX = t.paper.text(posX, t.labelY, String(val));
+              //grid.attr(t.fontAttrs);
+            //}
+        //}
+        // draw Y
+        posX = t.dateLineX - 15;
+        for (cur = t.dateLineY - (t.hashMargin), val = 0; val < 25; cur -= t.intervalY, val += 1) {
+          posY = cur;
+          grid = t.paper.path('M' + t.dateLineX + ',' + posY + 'L' + (t.dateLineX + 5) + ',' + posY);
+          grid.attr('stroke', t.hashColor);
+          if (val === 24) {
+            labelX = t.paper.text(posX, posY, String(0));
+            grid.attr(t.fontAttrs);
+          } else {
+            labelX = t.paper.text(posX, posY, String(val));
+            grid.attr(t.fontAttrs);
+          }
+        }
+        //for (cur = t.dateLineY - (t.hashMargin), val = 0; val < 61; cur -= t.intervalY, val += 1) {
+          //posY = cur;
+          //grid = t.paper.path('M' + t.dateLineX + ',' + posY + 'L' + (t.dateLineX + 5) + ',' + posY);
+          //grid.attr('stroke', t.hashColor);
+          //if ((val % 15) === 0) {
+            //grid = t.paper.path('M' + t.dateLineX + ',' + posY + 'L' + (t.dateLineX + 5) + ',' + posY);
+            ////grid.attr('stroke', t.hashColor);
+            //labelY = t.paper.text(posX, posY, String(val));
+            //grid.attr(t.fontAttrs);
+          //}
+        //}
       }
     },
     
     drawLabels: function(leftPxPos) {
-      var t = this;
+      var t = this.config;
       t.drawnStartMs = null;
       t.drawnEndMs = null;
       switch(t.mode) {
@@ -330,7 +350,7 @@ var Chronoline = {
           }
           break;
         case CHRONOLINE_MODE.HOUR_DAY:
-          t.drawLabelsHelper(0, 24);
+          this.drawLabelsHelper(0, 24);
           break;
         default:
           break;
@@ -338,6 +358,7 @@ var Chronoline = {
     },
 
     // PRAGMA: drawing events
+    // dependecy: base unit for timeline, e.g: t.intervalX, t.intervalY
     drawEvents: function(t) {
       for (var row = 0; row < t.eventRows.length; row++) {
           var upperY = t.totalHeight - t.dateLabelHeight - (row + 1) * (t.eventMargin + t.eventHeight);
@@ -367,18 +388,18 @@ var Chronoline = {
                   }
               }
               if (t.mode == CHRONOLINE_MODE.HOUR_DAY) {
-                  var time = event.dates[0].getHours() * 60 + event.dates[0].getMinutes();
-                  startX =  time * t.pxRatio;
+                  //var time = event.dates[0].getHours() * 60 + event.dates[0].getMinutes();
+                  posY =  t.dateLineY - event.dates[0].getHours() * t.intervalY;
                   if (event.icon) {
                       var radius = 8;
                       //upperY = upperY - t.icon.height - t.eventMargin - 10 - (radius / 2);
-                      upperY = t.dateLineY - t.icon.height - (event.dates[0].getMinutes() * t.intervalY);
-                      elem = t.paper.image(event.icon, startX, upperY,  t.icon.width, t.icon.height);
-                      circle = t.paper.circle(startX + t.icon.width + 2, upperY - 5,  radius).attr({
+                      posX = t.dateLineX + t.icon.height + (event.dates[0].getMinutes() * t.intervalX);
+                      elem = t.paper.image(event.icon, posX, posY,  t.icon.width, t.icon.height);
+                      circle = t.paper.circle(posX + t.icon.width + 4, posY - 8,  radius).attr({
                         fill: '#979CA0',
                         stroke: "none"
                       });
-                      badge = t.paper.text(startX + t.icon.width + 2, upperY - 5, event.count ? event.count : 1).attr({
+                      badge = t.paper.text(posX + t.icon.width + 4, posY - 8, event.count ? event.count : 1).attr({
                         fill: '#fff',
                         'font-size': 12
                       });
@@ -450,17 +471,93 @@ var Chronoline = {
       }
     },
    
-    create: function(domElement, events, options) {
-        var defaults = Chronoline.defaults;
-        var t = this;
+    // PRAGMA: Go to function
+    goToPx: function(finalLeft, isAnimated, isLabelsDrawn) {
+      var t = this.config;
+         if (t.isMoving) return false;
 
+            isAnimated = typeof isAnimated !== 'undefined' ? isAnimated : t.animated;
+            isLabelsDrawn = typeof isLabelsDrawn !== 'undefined' ? isLabelsDrawn : true;
+
+            finalLeft = Math.min(finalLeft, 0);
+            finalLeft = Math.max(finalLeft, -t.maxLeftPx);
+            // FIXME: Move to initial step
+            if (isLabelsDrawn) this.drawLabels(-finalLeft);
+
+            var left = getLeft(t.paperElem);
+
+            // hide scroll buttons if you're at the end
+            if (t.scrollable) {
+                if (finalLeft === 0) {
+                    t.leftControl.style.display = 'none';
+                    t.isScrolling = false;
+                } else {
+                    t.leftControl.style.display = '';
+                }
+                if (finalLeft == t.visibleWidth - t.totalWidth) {
+                    t.rightControl.style.display = 'none';
+                    t.isScrolling = false;
+                } else {
+                    t.rightControl.style.display = '';
+                }
+            }
+
+            var movingLabels = [];
+            var floatedLeft = -finalLeft + 5;
+            t.floatingSet.forEach(function(label) {
+                // pin the to the left side
+                if (label.data('left-bound') < floatedLeft && label.data('right-bound') > floatedLeft) {
+                    movingLabels.push([label, label.attr('x'), floatedLeft - label.attr('x') + 10]);
+                } else if (label.attr('x') != label.data('left-bound')) { // push it to where it should be
+                    movingLabels.push([label, label.attr('x'), label.data('left-bound') - label.attr('x')]);
+                }
+            });
+
+            if (isAnimated) {
+                t.isMoving = true;
+
+                var start = Date.now();
+
+                var elem = t.paperElem;
+
+                var step = function (timestamp) {
+                    var progress = (timestamp - start) / 200;
+                    var pos = (finalLeft - left) * progress + left;
+                    elem.style.left = pos + "px";
+
+                    // move the labels
+                    for (i = 0; i < movingLabels.length; i++) {
+                        movingLabels[i][0].attr('x', movingLabels[i][2] * progress + movingLabels[i][1]);
+                    }
+
+                    if (progress < 1) { // keep going
+                        requestAnimationFrame(step);
+                    } else { // put it in its final position
+                        t.paperElem.style.left = finalLeft + "px";
+                        for (i = 0; i < movingLabels.length; i++) {
+                            movingLabels[i][0].attr('x', movingLabels[i][2] + movingLabels[i][1]);
+                        }
+                        t.isMoving = false;
+                    }
+                };
+                requestAnimationFrame(step);
+
+            } else { // no animation is just a shift
+                t.paperElem.style.left = finalLeft + 'px';
+                for (var i = 0; i < movingLabels.length; i++) {
+                    movingLabels[i][0].attr('x', movingLabels[i][2] + movingLabels[i][1]);
+                }
+            }
+
+            return finalLeft !== 0 && finalLeft != -t.maxLeftPx;
+    },
+
+    create: function(domElement, events, options) {
         // FILL DEFAULTS
-        for (var attrname in defaults) {
-            t[attrname] = defaults[attrname];
+        for (var attrname in options) {
+            this.config[attrname] = options[attrname];
         }
-        for (attrname in options) {
-            t[attrname] = options[attrname];
-        }
+        var t = this.config;
 
         // options shouldn't be on if there aren't any sections
         t.floatingSectionLabels &= t.sections !== null;
@@ -475,24 +572,24 @@ var Chronoline = {
 
 
         // need to convert dates to UTC
-        if (t.mode == CHRONOLINE_MODE.MONTH_YEAR) {
-            for (i = 0; i < events.length; i++) {
-                for (j = 0; j < events[i].dates.length; j++) {
-                    Common.stripTime(events[i].dates[j]);
-                }
-            }
-        }
+        //if (t.mode == CHRONOLINE_MODE.MONTH_YEAR) {
+            //for (i = 0; i < events.length; i++) {
+                //for (j = 0; j < events[i].dates.length; j++) {
+                    //Common.stripTime(events[i].dates[j]);
+                //}
+            //}
+        //}
         t.events = events;
 
         // same thing for sections
-        if (t.sections !== null) {
-            for (i = 0; i < t.sections.length; i += 1) {
-                for (j = 0; j < t.sections[i].dates.length; j++) {
-                    Common.stripTime(t.sections[i].dates[j]);
-                }
-            }
-            t.sections.sort(t.sortEvents);
-        }
+        //if (t.sections !== null) {
+            //for (i = 0; i < t.sections.length; i += 1) {
+                //for (j = 0; j < t.sections[i].dates.length; j++) {
+                    //Common.stripTime(t.sections[i].dates[j]);
+                //}
+            //}
+            //t.sections.sort(t.sortEvents);
+        //}
         // CALCULATING MORE THINGS
         // generating relevant dates
         t.today = new Date(Date.now());
@@ -668,15 +765,17 @@ var Chronoline = {
             label.toFront();
         });
 
-        // PRAGMA: drawing events
-        // calculate x, y base unit
+        // PRAGMA: calculate x, y base unit
         t.dateLineX = t.leftMargin;
         t.dateLineY = t.totalHeight - t.dateLabelHeight - 5;
         t.hashMargin = 15;
         t.visibleWidth = t.visibleWidth - t.dateLineX;
-        t.intervalX = (t.visibleWidth - t.dateLineX - (t.hashMargin * 2)) / 24;
-        t.intervalY = (t.totalHeight - 50 - (t.hashMargin * 2)) / 61;
+        t.intervalX = (t.visibleWidth - t.dateLineX - (t.hashMargin * 2)) / 60;
+        t.intervalY = (t.totalHeight - 50 - (t.hashMargin * 2)) / 24;
+        //t.intervalX = (t.visibleWidth - t.dateLineX - (t.hashMargin * 2)) / 24;
+        //t.intervalY = (t.totalHeight - 50 - (t.hashMargin * 2)) / 61;
 
+        // PRAGMA: drawing events
         this.drawEvents(t);
         // calculated ahead of time
         // positions of baseline, subLabel
@@ -721,8 +820,8 @@ var Chronoline = {
         }
 
         t.isMoving = false;
+        /* TODO: move to outter function
         t.goToPx = function(finalLeft, isAnimated, isLabelsDrawn) {
-/*
         finalLeft is negative
 
         I tried several implementations here, including:
@@ -733,7 +832,6 @@ var Chronoline = {
         - animating floating content using getAnimation (current strategy)
         - animating floating content using raphael.animate
         This solution is by far the smoothest and doesn't have any asynchrony problems. There's some twitching going on with floating content, but it's not THAT bad
-      */
             if (t.isMoving) return false;
 
             isAnimated = typeof isAnimated !== 'undefined' ? isAnimated : t.animated;
@@ -742,7 +840,7 @@ var Chronoline = {
             finalLeft = Math.min(finalLeft, 0);
             finalLeft = Math.max(finalLeft, -t.maxLeftPx);
             // FIXME: Move to initial step
-            if (isLabelsDrawn) t.drawLabels(-finalLeft);
+            if (isLabelsDrawn) this.drawLabels(-finalLeft);
 
             var left = getLeft(t.paperElem);
 
@@ -811,6 +909,7 @@ var Chronoline = {
 
             return finalLeft !== 0 && finalLeft != -t.maxLeftPx;
         };
+        */
 
         t.goToDate = function(date, position) {
             // position is negative for left, 0 for middle, 1 for right
@@ -970,7 +1069,7 @@ var Chronoline = {
 
         // set the default position
         t.paperElem.style.left = -(t.defaultStartDate - t.startDate) * t.pxRatio + 20 + 'px';
-        t.goToPx(getLeft(t.paperElem));
+        this.goToPx(getLeft(t.paperElem));
         t.myCanvas.style.height = t.totalHeight + 'px';
     }
   };
