@@ -1,6 +1,7 @@
 *.rb
 *.backup
 tags
+test
 assets/scripts/*.md
 assets/scripts/.gitignore
 assets/scripts/*.html

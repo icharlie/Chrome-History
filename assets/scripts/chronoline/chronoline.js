@@ -26,8 +26,6 @@ function addElemClass(paperType, node, newClass) {
     }
 }
 
-
-
 function formatDate(date, formatString) {
     // done in the style of c's strftime
     // TODO: slowly adding in new parts to this
@@ -116,6 +114,8 @@ var Chronoline = {
         topMargin: 40,
         // TODO: add description
         leftMargin: 25,
+        // TODO: add description
+        hashMargin: 25,
         // overhead space on the canvas. useful for additional content
         eventHeight: 5,
         // how tall event events are
@@ -262,26 +262,32 @@ var Chronoline = {
         }
         break;
       case CHRONOLINE_MODE.HOUR_DAY:
-        t.intervalX = (t.visibleWidth - t.dateLineX) / 24;
-        t.intervalY = (t.totalHeight - 50) / 61; // FIXME get the right height
         var posX, grid, labelX;
         // draw X
-        for (cur = start, val = start; cur < t.visibleWidth; cur += t.intervalX, val += 1) {
+        for (cur = (start + t.hashMargin), val = start; val < 25; cur += t.intervalX, val += 1) {
             posX = cur + t.dateLineX;
             grid = t.paper.path('M' + posX + ',' + t.dateLineY + 'L' + posX + ',' + t.bottomHashY);
             grid.attr('stroke', t.hashColor);
-            if (val === 24) val = 0;
-            labelX = t.paper.text(posX, t.labelY, String(val));
-            grid.attr(t.fontAttrs);
+            if (val === 24) {
+              labelX = t.paper.text(posX, t.labelY, String(0));
+              grid.attr(t.fontAttrs);
+            } else {
+              labelX = t.paper.text(posX, t.labelY, String(val));
+              grid.attr(t.fontAttrs);
+            }
         }
         // draw Y
         posX = t.dateLineX - 15;
-        for (cur = t.dateLineY, val = 0; cur > 0; cur -= t.intervalY, val += 1) {
+        for (cur = t.dateLineY - (t.hashMargin), val = 0; val < 61; cur -= t.intervalY, val += 1) {
           posY = cur;
           grid = t.paper.path('M' + t.dateLineX + ',' + posY + 'L' + (t.dateLineX + 5) + ',' + posY);
           grid.attr('stroke', t.hashColor);
-          labelY = t.paper.text(posX, posY, String(val));
-          grid.attr(t.fontAttrs);
+          if ((val % 15) === 0) {
+            //grid = t.paper.path('M' + t.dateLineX + ',' + posY + 'L' + (t.dateLineX + 5) + ',' + posY);
+            //grid.attr('stroke', t.hashColor);
+            labelY = t.paper.text(posX, posY, String(val));
+            grid.attr(t.fontAttrs);
+          }
         }
       }
     },
@@ -341,17 +347,32 @@ var Chronoline = {
               // TODO: after implemented mode register, move to regist function
               if (t.mode == CHRONOLINE_MODE.MONTH_YEAR) {
                   startX = (event.dates[0].getTime() - t.startTime) * t.pxRatio;
+                  if (event.dates.length == 1) { // it's a single point
+                    elem = t.paper.circle(startX, upperY + t.circleRadius, t.circleRadius).attr(t.eventAttrs);
+                  } else { // it's a range
+                      _width = (getEndDate(event.dates) - event.dates[0]) * t.pxRatio;
+                      // left rounded corner
+                      var leftCircle = t.paper.circle(startX, upperY + t.circleRadius, t.circleRadius).attr(t.eventAttrs);
+                      if (typeof event.attrs != "undefined") {
+                          leftCircle.attr(event.attrs);
+                      }
+                      addElemClass(t.paperType, leftCircle.node, 'chronoline-event');
+                      // right rounded corner
+                      rightCircle = t.paper.circle(startX + _width, upperY + t.circleRadius, t.circleRadius).attr(t.eventAttrs);
+                      if (typeof event.attrs != "undefined") {
+                          rightCircle.attr(event.attrs);
+                      }
+                      addElemClass(t.paperType, rightCircle.node, 'chronoline-event');
+                      elem = t.paper.rect(startX, upperY, _width, t.eventHeight).attr(t.eventAttrs);
+                  }
               }
               if (t.mode == CHRONOLINE_MODE.HOUR_DAY) {
                   var time = event.dates[0].getHours() * 60 + event.dates[0].getMinutes();
                   startX =  time * t.pxRatio;
-              }
-              var badge = null;
-              if (event.dates.length == 1) { // it's a single point
                   if (event.icon) {
-                      // FIXME: change badge style
                       var radius = 8;
-                      upperY = upperY - t.icon.height - t.eventMargin - 10 - (radius / 2);
+                      //upperY = upperY - t.icon.height - t.eventMargin - 10 - (radius / 2);
+                      upperY = t.dateLineY - t.icon.height - (event.dates[0].getMinutes() * t.intervalY);
                       elem = t.paper.image(event.icon, startX, upperY,  t.icon.width, t.icon.height);
                       circle = t.paper.circle(startX + t.icon.width + 2, upperY - 5,  radius).attr({
                         fill: '#979CA0',
@@ -362,26 +383,12 @@ var Chronoline = {
                         'font-size': 12
                       });
                   } else {
-                      elem = t.paper.circle(startX, upperY + t.circleRadius, t.circleRadius).attr(t.eventAttrs);
+                      //elem = t.paper.circle(startX, upperY + t.circleRadius, t.circleRadius).attr(t.eventAttrs);
                   }
-              } else { // it's a range
-                  _width = (getEndDate(event.dates) - event.dates[0]) * t.pxRatio;
-                  // left rounded corner
-                  var leftCircle = t.paper.circle(startX, upperY + t.circleRadius, t.circleRadius).attr(t.eventAttrs);
-                  if (typeof event.attrs != "undefined") {
-                      leftCircle.attr(event.attrs);
-                  }
-                  addElemClass(t.paperType, leftCircle.node, 'chronoline-event');
-                  // right rounded corner
-                  rightCircle = t.paper.circle(startX + _width, upperY + t.circleRadius, t.circleRadius).attr(t.eventAttrs);
-                  if (typeof event.attrs != "undefined") {
-                      rightCircle.attr(event.attrs);
-                  }
-                  addElemClass(t.paperType, rightCircle.node, 'chronoline-event');
-                  elem = t.paper.rect(startX, upperY, _width, t.eventHeight).attr(t.eventAttrs);
               }
 
-              if (typeof event.attrs != "undefined") {
+
+              if (typeof event.attrs !== "undefined") {
                   elem.attr(event.attrs);
               }
               addElemClass(t.paperType, elem.node, 'chronoline-event');
@@ -451,7 +458,7 @@ var Chronoline = {
         for (var attrname in defaults) {
             t[attrname] = defaults[attrname];
         }
-        for (var attrname in options) {
+        for (attrname in options) {
             t[attrname] = options[attrname];
         }
 
@@ -466,35 +473,21 @@ var Chronoline = {
         t.wrapper.className = 'chronoline-wrapper';
         t.domElement.appendChild(t.wrapper);
 
-        // SORT EVENTS
-        t.sortEvents = function(a, b) {
-            a = a.dates;
-            b = b.dates;
-
-            var aEnd = a[a.length - 1].getTime();
-            var bEnd = b[b.length - 1].getTime();
-            if (aEnd != bEnd) {
-                return aEnd - bEnd;
-            }
-            return a[0].getTime() - b[0].getTime();
-        };
-
 
         // need to convert dates to UTC
         if (t.mode == CHRONOLINE_MODE.MONTH_YEAR) {
-            for (var i = 0; i < events.length; i++) {
-                for (var j = 0; j < events[i].dates.length; j++) {
+            for (i = 0; i < events.length; i++) {
+                for (j = 0; j < events[i].dates.length; j++) {
                     Common.stripTime(events[i].dates[j]);
                 }
             }
         }
         t.events = events;
-        t.events.sort(t.sortEvents);
 
         // same thing for sections
         if (t.sections !== null) {
-            for (var i = 0; i < t.sections.length; i += 1) {
-                for (var j = 0; j < t.sections[i].dates.length; j++) {
+            for (i = 0; i < t.sections.length; i += 1) {
+                for (j = 0; j < t.sections[i].dates.length; j++) {
                     Common.stripTime(t.sections[i].dates[j]);
                 }
             }
@@ -505,18 +498,18 @@ var Chronoline = {
         t.today = new Date(Date.now());
         Common.stripTime(t.today);
 
-        if (t.defaultStartDate == null) {
+        if (t.defaultStartDate === null) {
             t.defaultStartDate = t.today;
         }
 
-        if (t.startDate == null) {
+        if (t.startDate === null) {
             if (t.events.length > 0) {
                 t.startDate = t.events[0].dates[0];
-                for (var i = 1; i < t.events.length; i++)
+                for (i = 1; i < t.events.length; i++)
                 if (t.events[i].dates[0] < t.startDate) t.startDate = t.events[i].dates[0];
             } else if (t.sections.length > 0) {
                 t.startDate = t.sections[0].dates[0];
-                for (var i = 0; i < t.sections.length; i++) {
+                for (i = 0; i < t.sections.length; i++) {
                     if (t.sections[i].dates[0] < t.startDate) t.startDate = t.sections[i].dates[0];
                 }
             } else {
@@ -528,44 +521,22 @@ var Chronoline = {
         t.startDate = new Date(t.startDate.getTime() - t.timelinePadding);
         t.startTime = t.startDate.getTime();
 
-        if (t.endDate == null) {
+        if (t.endDate === null) {
             if (t.events.length > 0) {
                 t.endDate = getEndDate(t.events[0].dates);
-                for (var i = 1; i < t.events.length; i++)
+                for (i = 1; i < t.events.length; i++)
                 if (getEndDate(t.events[i].dates) > t.endDate) t.endDate = getEndDate(t.events[i].dates);
-            } else if (t.sections != null && t.sections.length > 0 /* FIXME: for now just check sections not null*/) {
+            } else if (t.sections !== null && t.sections.length > 0 /* FIXME: for now just check sections not null*/) {
                 t.endDate = t.sections[0].dates[1];
-                for (var i = 0; i < t.sections.length; i++) {
+                for (i = 0; i < t.sections.length; i++) {
                     if (t.sections[i].dates[1] > t.endDate) t.endDate = t.sections[i].dates[1];
                 }
             } else {
             }
         }
         if (t.endDate < t.defaultStartDate) t.endDate = t.defaultStartDate;
-        t.endDate = new Date(Math.max(t.endDate.getTime(), t.startDate.getTime() + t.visibleSpan) + t.timelinePadding)
+        t.endDate = new Date(Math.max(t.endDate.getTime(), t.startDate.getTime() + t.visibleSpan) + t.timelinePadding);
         Common.stripTime(t.endDate);
-
-        // Filter events
-        tmpEvents = [];
-        for (var i = 0; i < events.length; i++) {
-            var tmpDates = [];
-            for (var j = 0; j < events[i].dates.length; j++) {
-                var curTime = t.events[i].dates[j].getTime();
-                if (curTime >= t.startTime && curTime <= t.endDate.getTime()) {
-                    tmpDates.push(t.events[i].dates[j]);
-                }
-            }
-            // FIXME: create event structure
-            if (tmpDates.length > 0) tmpEvents.push({
-                'dates': tmpDates,
-                'section': t.events[i].section,
-                'title': t.events[i].title,
-                'icon': t.events[i].icon,
-                'count': t.events[i].count
-            });
-        }
-        t.events = tmpEvents;
-
 
         // this ratio converts a time into a px position
         t.visibleWidth = t.domElement.clientWidth;
@@ -698,12 +669,20 @@ var Chronoline = {
         });
 
         // PRAGMA: drawing events
+        // calculate x, y base unit
+        t.dateLineX = t.leftMargin;
+        t.dateLineY = t.totalHeight - t.dateLabelHeight - 5;
+        t.hashMargin = 15;
+        t.visibleWidth = t.visibleWidth - t.dateLineX;
+        t.intervalX = (t.visibleWidth - t.dateLineX - (t.hashMargin * 2)) / 24;
+        t.intervalY = (t.totalHeight - 50 - (t.hashMargin * 2)) / 61;
+
         this.drawEvents(t);
         // calculated ahead of time
         // positions of baseline, subLabel
-        t.dateLineX = t.leftMargin;
-        t.visibleWidth = t.visibleWidth - t.dateLineX;
-        t.dateLineY = t.totalHeight - t.dateLabelHeight - 5;
+        //t.dateLineX = t.leftMargin;
+        //t.visibleWidth = t.visibleWidth - t.dateLineX;
+        //t.dateLineY = t.totalHeight - t.dateLabelHeight - 5;
         this.drawBaseline();
 
         t.bottomHashY = t.dateLineY + t.hashLength;
@@ -719,8 +698,8 @@ var Chronoline = {
             for (var year = t.startDate.getFullYear(); year <= endYear; year++) {
                 var curDate = new Date(year, 0, 1);
                 Common.stripTime(curDate);
-                var x = t.msToPx(curDate.getTime());
-                var subSubLabel = t.paper.text(x, t.subSubLabelY, formatDate(curDate, '%Y').toUpperCase());
+                x = t.msToPx(curDate.getTime());
+                subSubLabel = t.paper.text(x, t.subSubLabelY, formatDate(curDate, '%Y').toUpperCase());
                 subSubLabel.attr(t.fontAttrs);
                 subSubLabel.attr(t.subSubLabelAttrs);
                 if (t.floatingSubSubLabels) {
@@ -735,8 +714,8 @@ var Chronoline = {
         }
         if (t.mode == CHRONOLINE_MODE.HOUR_DAY) {
             // position
-            var x = t.visibleWidth / 2;
-            var subSubLabel = t.paper.text(x, t.subSubLabelY, formatDate(t.startDate, '%b %d'));
+            x = t.visibleWidth / 2;
+            subSubLabel = t.paper.text(x, t.subSubLabelY, formatDate(t.startDate, '%b %d'));
             subSubLabel.attr(t.fontAttrs);
             subSubLabel.attr(t.subSubLabelAttrs);
         }
@@ -801,13 +780,13 @@ var Chronoline = {
 
                 var elem = t.paperElem;
 
-                function step(timestamp) {
+                var step = function (timestamp) {
                     var progress = (timestamp - start) / 200;
                     var pos = (finalLeft - left) * progress + left;
                     elem.style.left = pos + "px";
 
                     // move the labels
-                    for (var i = 0; i < movingLabels.length; i++) {
+                    for (i = 0; i < movingLabels.length; i++) {
                         movingLabels[i][0].attr('x', movingLabels[i][2] * progress + movingLabels[i][1]);
                     }
 
@@ -815,12 +794,12 @@ var Chronoline = {
                         requestAnimationFrame(step);
                     } else { // put it in its final position
                         t.paperElem.style.left = finalLeft + "px";
-                        for (var i = 0; i < movingLabels.length; i++) {
+                        for (i = 0; i < movingLabels.length; i++) {
                             movingLabels[i][0].attr('x', movingLabels[i][2] + movingLabels[i][1]);
                         }
                         t.isMoving = false;
                     }
-                }
+                };
                 requestAnimationFrame(step);
 
             } else { // no animation is just a shift
@@ -830,8 +809,8 @@ var Chronoline = {
                 }
             }
 
-            return finalLeft != 0 && finalLeft != -t.maxLeftPx;
-        }
+            return finalLeft !== 0 && finalLeft != -t.maxLeftPx;
+        };
 
         t.goToDate = function(date, position) {
             // position is negative for left, 0 for middle, 1 for right
@@ -843,7 +822,7 @@ var Chronoline = {
             } else {
                 t.goToPx(-t.msToPx(date.getTime()) + t.visibleWidth / 2);
             }
-        }
+        };
         // PRAGMA: CREATING THE NAVIGATION
         // this is boring
         if (t.scrollable) {
@@ -962,11 +941,11 @@ var Chronoline = {
             t.stopDragging = function(e) {
                 jQuery(t.wrapper).removeClass('dragging').unbind('mousemove', t.mouseMoved).unbind('mouseleave', t.stopDragging).unbind('mouseup', t.stopDragging);
                 t.drawLabels(-getLeft(t.paperElem));
-            }
+            };
 
             t.mouseMoved = function(e) {
                 t.goToPx(t.dragPaperStart - (t.dragMouseStart - e.pageX), false, false);
-            }
+            };
 
             t.wrapper.className += ' chronoline-draggable';
             jQuery(t.paperElem).mousedown(function(e) {
@@ -996,4 +975,4 @@ var Chronoline = {
     }
   };
   window.Chronoline = Chronoline;
-})(window)
+})(window);

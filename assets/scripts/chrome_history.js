@@ -13,14 +13,14 @@
         },  
         function(historyItems){
           var queue = []; // queue for the history item need to update visitTime
-          var initTime = date.getTime(); // get the low bound of time
+          var startTime = date.getTime(); // get the low bound of time
           var endTime = date.getTime() + DAY_IN_MILLISECONDS; // get the upper bound of time
           ChromeHistory.historyItems = historyItems; // copy history itmes
           // Check the lastVistTime, if the lastVisitTime is not at the same day,
           // we need to query again via chrome.history.getVisists function
           for (var i = 0; i < ChromeHistory.historyItems.length; i += 1) {
             var historyItem = ChromeHistory.historyItems[i];
-            if (historyItem.lastVisitTime >= initTime  && historyItem.lastVisitTime < endTime ) {
+            if (historyItem.lastVisitTime >= startTime  && historyItem.lastVisitTime < endTime ) {
               ChromeHistory.historyItems[i].visitTime = historyItem.lastVisitTime;
             } else {
               var obj = {};
@@ -29,7 +29,7 @@
               chrome.history.getVisits({url: historyItem.url}, function(result) {  
                 var target;
                 result.forEach(function(r){
-                    if (r.visitTime >= initTime  && r.visitTime < endTime ) {
+                    if (r.visitTime >= startTime  && r.visitTime < endTime ) {
                       target = r;
                     }
                 });
@@ -69,40 +69,43 @@
       }, function(historyItems) {
 
         var queue = []; // queue for the history item need to update visitTime
-        var initTime = date.getTime(); // get the low bound of time
+        var startTime = date.getTime(); // get the low bound of time
         var endTime = date.getTime() + DAY_IN_MILLISECONDS; // get the upper bound of time
         ChromeHistory.historyItems = historyItems; // copy history itmes
+        // callback function for chrome.history.getVisits function
+        var _callback = function(result) {
+          var target;
+          result.forEach(function(r){
+              if (r.visitTime >= startTime  && r.visitTime < endTime ) {
+                target = r;
+              }
+          });
+          for (var i = 0; i < queue.length; i++) {
+            var item = queue[i];
+            if(item){
+              for (var key in item) {
+                if (item[key].id === target.id) {
+                  ChromeHistory.historyItems[key].visitTime = target.visitTime;
+                  queue.splice(i, 1);
+                }
+              }
+            }
+          }
+        };
         // Check the lastVistTime, if the lastVisitTime is not at the same day,
         // we need to query again via chrome.history.getVisists function
-        for (var i = 0; i < ChromeHistory.historyItems.length; i += 1) {
+        for (i = 0; i < ChromeHistory.historyItems.length; i += 1) {
           var historyItem = ChromeHistory.historyItems[i];
-          if (historyItem.lastVisitTime >= initTime  && historyItem.lastVisitTime < endTime ) {
+          if (historyItem.lastVisitTime >= startTime  && historyItem.lastVisitTime < endTime ) {
             ChromeHistory.historyItems[i].visitTime = historyItem.lastVisitTime;
           } else {
             var obj = {};
             obj[i] = ChromeHistory.historyItems[i];
             queue.push(obj);
-            chrome.history.getVisits({url: historyItem.url}, function(result) {  
-              var target;
-              result.forEach(function(r){
-                  if (r.visitTime >= initTime  && r.visitTime < endTime ) {
-                    target = r;
-                  }
-              });
-              for (var i = 0; i < queue.length; i++) {
-                var item = queue[i];
-                if(item){
-                  for (var key in item) {
-                    if (item[key].id === target.id) {
-                      ChromeHistory.historyItems[key].visitTime = target.visitTime;
-                      queue.splice(i, 1);
-                    }
-                  }
-                }
-              }
-            });
+            chrome.history.getVisits({url: historyItem.url}, _callback);
           }
         }
+        // waiting unitl queue is empty
         setTimeout( function () {
           //queue = checkQuene(queue);
           if (queue.length !== 0) {
@@ -120,20 +123,17 @@
             var event = null;
             var uri = URI(r.url);
             var date = new Date(r.visitTime);
-            // FIXME: key makes the last some events disapper, maybe be put into wrong group
             var key = date.getHours() + date.getMinutes() + uri.scheme() + '://' + uri.host();
             if(data[key]) {
               data[key].count += 1;
             } else {
-                //var visitItem = getVisitItem(r, date);
-                //var visitDate = visitItem ? new Date(visitItem.visitTime) : new Date(r.lastVisitTime);
                 var visitDate = new Date(r.visitTime);
                 event = {
                   dates: [visitDate],
                   title: r.title + '[' + ChromeHistory.formatDate(visitDate) + ']',
                   icon: 'chrome://favicon/' + r.url,
                   count: 1
-                  };
+                };
                 data[key] = event;
             }
           });
@@ -142,8 +142,9 @@
           }
           // PRAGMA: Timeline
           $("#timeline-chart").empty();
-          
-          var timeline = Chronoline.create(document.getElementById("timeline-chart"), events, timeline_config);
+          events.sort(Common.sortByTime);
+          Common.filter(events, {startTime: date.getTime(), endTime: (date.getTime() + DAY_IN_MILLISECONDS)});
+          timeline = Chronoline.create(document.getElementById("timeline-chart"), events, timeline_config);
         };
       });    
     },
@@ -163,8 +164,7 @@
       } else {
         return hrs + ":" + mins + " AM";    
       }
-    }
-  };
+    }};
 
   // Expose ChromeHistory to the global object
   window.ChromeHistory = ChromeHistory;
@@ -184,7 +184,7 @@ function paginate(ele) {
   var counts = ele.children().length;
   window.pagination = {
     count: counts,
-    display: 40,
+    display: 10,
     current: 1
   };
   // clean old link
@@ -198,7 +198,7 @@ function paginate(ele) {
   for (var i = 0; i < pageSize; i += 1) {
     pages[i] = lis.slice(i * pagination.display, (i+1) * pagination.display);
     pages[i].wrapAll("<div id='page" + (i + 1) +"'></div>");
-    $("<a href=#page" + (pageSize - i) + ">" + (pageSize - i) + "</a>").insertAfter(ele);
+    $("<a href=#page" + (i + 1) + ">" + (i + 1) + "</a>").insertBefore(ele);
   }
 
   // create page links
@@ -214,13 +214,13 @@ function paginate(ele) {
 
 function getVisitItem(historyItem, date) {
   var visitItems = [];
-  var initTime = date.getTime();
+  var startTime = date.getTime();
   var endTime = date.getTime() + DAY_IN_MILLISECONDS;
   chrome.history.getVisits({url: historyItem.url}, function(result) {  
     result.forEach(function(r){
       var curDate = new Date(r.visitTime);
       var curTime = curDate.getTime() ;
-      if (curTime >= initTime  && curTime <= endTime ) {
+      if (curTime >= startTime  && curTime <= endTime ) {
         r.title = historyItem.title;
         r.url = historyItem.url;
         visitItems.push(r);
