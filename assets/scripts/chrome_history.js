@@ -1,4 +1,5 @@
 ( function (window) {
+  MAX_RESULT = 99999;
   var ChromeHistory = {
     name: 'Chrome History',
     historyItems: [],
@@ -47,7 +48,6 @@
               });
             }
           }
-          // TODO: loading view
           setTimeout( function () {
             if (queue.length !== 0) {
               setTimeout(this, 500);
@@ -60,12 +60,11 @@
     // PRAGMA: search chrome history for timeline
     drawTimeline: function(date, timeline_config) {
       // calculate timeline canvas top margin.
-      // TODO: change maxResults after developing process.
       chrome.history.search({
         'text': '',
         'startTime': date.getTime(),
         'endTime': date.getTime() + DAY_IN_MILLISECONDS,
-        'maxResults': 999999 
+        'maxResults': MAX_RESULT 
       }, function(historyItems) {
 
         var queue = []; // queue for the history item need to update visitTime
@@ -123,12 +122,14 @@
             var event = null;
             var uri = URI(r.url);
             var date = new Date(r.visitTime);
-            var key = date.getHours() + date.getMinutes() + uri.scheme() + '://' + uri.host();
+            var eventKey = uri.scheme() + '://' + uri.host();
+            var key = "" + date.getHours() + date.getMinutes() + uri.scheme() + '://' + uri.host();
             if(data[key]) {
               data[key].count += 1;
             } else {
                 var visitDate = new Date(r.visitTime);
                 event = {
+                  timestamp: "" + date.getHours() + date.getMinutes(),
                   dates: [visitDate],
                   title: r.title + '[' + ChromeHistory.formatDate(visitDate) + ']',
                   icon: 'chrome://favicon/' + r.url,
