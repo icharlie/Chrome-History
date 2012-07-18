@@ -2,6 +2,7 @@
 body {
   font-family: Lucida Grande, Lucida Sans, Arial, sans-serif; 
   font-size: 1em;
+  background-color: rgb(244, 244, 244);
 }
 
 /* == Begin search == */

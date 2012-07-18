@@ -123,7 +123,7 @@
             var uri = URI(r.url);
             var date = new Date(r.visitTime);
             var eventKey = uri.scheme() + '://' + uri.host();
-            var key = "" + date.getHours() + date.getMinutes() + uri.scheme() + '://' + uri.host();
+            var key = "" + date.getHours() + date.getMinutes() +  uri.host();
             if(data[key]) {
               data[key].count += 1;
             } else {
@@ -282,7 +282,9 @@ $(document).ready(function() {
   $("#timeline, #search").css('height', height / 2);
   $("#icon, #result").css('height', height - $("#timeline").height());
   var topMargin = (height / 2) - 80;
-  var today = new Date();
+  // FIXME: now, I need to set up the previous date for developemnt
+  //var today = new Date();
+  var today = new Date("2012/07/10");
   Common.stripTime(today);
   var timeline_config = {
     animated: true,

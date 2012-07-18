@@ -369,7 +369,7 @@ var Chronoline = {
   // PRAGMA: drawing events
   // dependecy: base unit for timeline, e.g: t.intervalX, t.intervalY
   drawEvents: function(t) {
-    var elem;
+    var elem; // variable for add qtip
     if (t.mode == CHRONOLINE_MODE.MONTH_YEAR) {
     for (var row = 0; row < t.eventRows.length; row++) {
         var upperY = t.totalHeight - t.dateLabelHeight - (row + 1) * (t.eventMargin + t.eventHeight);
@@ -425,7 +425,7 @@ var Chronoline = {
       }
     }
     if (t.mode == CHRONOLINE_MODE.HOUR_DAY) {
-      // TODO: temporary to create a fold here, need to refactoring
+      // TODO: temporary to create folder object here, need to refactoring
       labels = {};
       events = t.events;
       for (i = 0; i < events.length; i += 1) {
@@ -436,19 +436,89 @@ var Chronoline = {
         }
         labels[events[i].timestamp].events.push(events[i]);
       }
+      var title;
       for(var key in labels) {
         if(labels[key].count > 1) {
           //TODO: draw folder
+          folderHeight = 25;
+          radius = 12;
+          event = labels[key].events[0];
+          posY =  t.dateLineY - (event.dates[0].getHours() + 1) * t.intervalY;
+          posX = t.dateLineX + folderHeight + (event.dates[0].getMinutes() * t.intervalX);
+          elem = t.paper.rect(posX, posY,  folderHeight, folderHeight, 2).attr({
+            fill: '270-#ffffff:0-#979CA0',
+            stroke: "none",
+            cursor: 'pointer'
+          });
+          elem.click(function () {
+            // TODO: pop up and show all events
+            console.log('folder');
+          });
+          firstThirdEvents = [];
+          for (i = 0; i < labels[key].events.length; i += 1) {
+            if (i===3) break;
+            firstThirdEvents.push( labels[key].events[i]);
+          }
+          rightX = posX + folderHeight;
+          bottomY = posY + folderHeight;
+          leftX = rightX - t.icon.width;
+          upperY = bottomY - t.icon.height;
+          for(i = firstThirdEvents.length - 1; i >= 0; i -=1) {
+            evt = firstThirdEvents[i];
+            event_img = t.paper.image(evt.icon, leftX, upperY,  t.icon.width + 1, t.icon.height + 1).attr({
+              cursor: 'pointer',
+              opacity: 1 - (i*0.1)
+            });
+            leftX = leftX - (t.icon.width / 3)
+            upperY = upperY - (t.icon.height / 3); 
+          }
+          badgePosX = posX + folderHeight + 4;
+          badgeRadius = 7;
+            circle = t.paper.circle(badgePosX, posY - 8,  badgeRadius + 2).attr({
+              fill: '#fff',
+              stroke: "none"
+            });
+            circle = t.paper.circle(badgePosX, posY - 8,  badgeRadius).attr({
+              fill: '270-#fff:0-#f00:60',
+              "fill-opacity": 0.9,
+              stroke: "none"
+            });
+
+          badge = t.paper.text(badgePosX, posY - 8, labels[key].count).attr({
+              fill: '#fff',
+              'font-size': 12
+        });
+          title = "Folder[" +  ChromeHistory.formatDate(event.dates[0]) + "]";
         } else {
           // TODO: draw event
             event = labels[key].events[0];
+            title = event.title;
+            radius = 7;
             posY =  t.dateLineY - (event.dates[0].getHours() + 1) * t.intervalY;
-            var radius = 8;
-            //upperY = upperY - t.icon.height - t.eventMargin - 10 - (radius / 2);
             posX = t.dateLineX + t.icon.height + (event.dates[0].getMinutes() * t.intervalX);
-            elem = t.paper.image(event.icon, posX, posY,  t.icon.width, t.icon.height);
+            // background
+            rect = t.paper.rect(posX - 2, posY - 2,  t.icon.width + 4, t.icon.height + 4, 2).attr({
+              fill: '#bcbcbc',
+              "fill-opacity": 0.9,
+              stroke: "none"
+            });
+
+            rect = t.paper.rect(posX - 1, posY - 1,  t.icon.width + 2, t.icon.height + 2, 2).attr({
+              fill: '270-#ffffff:0-#bcbcbc',
+              stroke: "none"
+            });
+
+            elem = t.paper.image(event.icon, posX, posY,  t.icon.width, t.icon.height).attr({
+              cursor: 'pointer'
+            });
+
+            circle = t.paper.circle(posX + t.icon.width + 4, posY - 8,  radius + 2).attr({
+              fill: '#fff',
+              stroke: "none"
+            });
             circle = t.paper.circle(posX + t.icon.width + 4, posY - 8,  radius).attr({
-              fill: '#979CA0',
+              fill: '270-#fff:0-#f00:60',
+              "fill-opacity": 0.9,
               stroke: "none"
             });
             badge = t.paper.text(posX + t.icon.width + 4, posY - 8, event.count ? event.count : 1).attr({
@@ -456,7 +526,43 @@ var Chronoline = {
               'font-size': 12
             });
         }
+      //elem.attr(event.attrs);
+      addElemClass(t.paperType, elem.node, 'chronoline-event');
+      elem.attr('title', title);
+      if (t.tooltips && !jQuery.browser.msie) {
+          var description = elem.description;
+          title = elem.title;
+          if (typeof description === "undefined" || description === '') {
+              description = title;
+              title = '';
+          }
+          jQuery(elem.node).parent().qtip({
+              content: {
+                  title: title,
+                  text: description
+              },
+              position: {
+                  my: 'bottom left',
+                  target: 'mouse',
+                  viewport: jQuery(window),
+                  // Keep it on-screen at all times if possible
+                  adjust: {
+                      x: 10,
+                      y: 10
+                  }
+              },
+              show: {
+                delay: 1000
+              },
+              hide: {
+                fixed: false // Helps to prevent the tooltip from hiding ocassionally when tracking!
+              },
+              style: {
+                  classes: 'ui-tooltip-shadow ui-tooltip-dark ui-tooltip-rounded'
+              }
+          });
       }
+    }
       //for (i = 0; i < t.events.length; i += 1) {
         //event = t.events[i];
         ////var time = event.dates[0].getHours() * 60 + event.dates[0].getMinutes();
@@ -729,6 +835,7 @@ var Chronoline = {
         for (var attrname in options) {
             this.config[attrname] = options[attrname];
         }
+        // use t as short name to manipulate the configuration
         var t = this.config;
 
         // options shouldn't be on if there aren't any sections
@@ -742,26 +849,8 @@ var Chronoline = {
         t.wrapper.className = 'chronoline-wrapper';
         t.domElement.appendChild(t.wrapper);
 
-
-        // need to convert dates to UTC
-        //if (t.mode == CHRONOLINE_MODE.MONTH_YEAR) {
-            //for (i = 0; i < events.length; i++) {
-                //for (j = 0; j < events[i].dates.length; j++) {
-                    //Common.stripTime(events[i].dates[j]);
-                //}
-            //}
-        //}
         t.events = events;
 
-        // same thing for sections
-        //if (t.sections !== null) {
-            //for (i = 0; i < t.sections.length; i += 1) {
-                //for (j = 0; j < t.sections[i].dates.length; j++) {
-                    //Common.stripTime(t.sections[i].dates[j]);
-                //}
-            //}
-            //t.sections.sort(t.sortEvents);
-        //}
         // CALCULATING MORE THINGS
         // generating relevant dates
         t.today = new Date(Date.now());
@@ -781,7 +870,6 @@ var Chronoline = {
                 for (i = 0; i < t.sections.length; i++) {
                     if (t.sections[i].dates[0] < t.startDate) t.startDate = t.sections[i].dates[0];
                 }
-            } else {
             }
         }
         Common.stripTime(t.startDate);
@@ -800,7 +888,6 @@ var Chronoline = {
                 for (i = 0; i < t.sections.length; i++) {
                     if (t.sections[i].dates[1] > t.endDate) t.endDate = t.sections[i].dates[1];
                 }
-            } else {
             }
         }
         if (t.endDate < t.defaultStartDate) t.endDate = t.defaultStartDate;
@@ -877,65 +964,6 @@ var Chronoline = {
         t.floatingSet = t.paper.set();
         t.sectionLabelSet = t.paper.set();
         var elem;
-        // TODO: drawing sections
-        //if (t.sections !== null) {
-            //for (i = 0; i < t.sections.length; i++) {
-                //var section = t.sections[i];
-                //if (t.mode == CHRONOLINE_MODE.MONTH_YEAR) {
-                    //startX = (section.dates[0].getTime() - t.startTime) * t.pxRatio;
-                //}
-                //if (t.mode == CHRONOLINE_MODE.HOUR_DAY) {
-                    //startX = section.dates[0].getHour() * t.pxRatio;
-                //}
-                //var width = (section.dates[1] - section.dates[0]) * t.pxRatio;
-                //elem = t.paper.rect(startX, 0, width, t.totalHeight);
-                //elem.attr('stroke-width', 0);
-                //elem.attr('stroke', '#ffffff');
-                //if (typeof section.attrs != "undefined") {
-                    //elem.attr(section.attrs);
-                //}
-                //var sectionLabel = t.paper.text(startX + 10, 10, section.title);
-                //sectionLabel.attr('text-anchor', 'start');
-                //sectionLabel.attr(t.sectionLabelAttrs);
-                //if (t.floatingSectionLabels) {
-                    //// bounds determine how far things can float
-                    //sectionLabel.data('left-bound', startX + 10);
-                    //sectionLabel.data('right-bound', startX + width - sectionLabel.attr('width'));
-                    //t.floatingSet.push(sectionLabel);
-                    //t.sectionLabelSet.push(sectionLabel);
-                //}
-
-                //elem.data('label', sectionLabel);
-
-                //if (t.sectionLabelsOnHover) {
-                    //elem.hover(function() {
-                        //this.data('label').animate({
-                            //opacity: 1
-                        //}, 200);
-                    //}, function() {
-                        //this.data('label').animate({
-                            //opacity: 0
-                        //}, 200);
-                    //});
-                    //sectionLabel.hover(function() {
-                        //this.animate({
-                            //opacity: 1
-                        //}, 200);
-                    //}, function() {
-                        //this.animate({
-                            //opacity: 0
-                        //}, 200);
-                    //});
-                    //sectionLabel.attr('opacity', 0);
-                //}
-
-            //}
-        //}
-
-        // put all of these in front of the sections
-        t.sectionLabelSet.forEach(function(label) {
-            label.toFront();
-        });
 
         // PRAGMA: calculate x, y base unit
         t.dateLineX = t.leftMargin;
@@ -984,128 +1012,9 @@ var Chronoline = {
             subSubLabel.attr(t.subSubLabelAttrs);
         }
 
-        //t.isMoving = false;
 
-        //t.goToDate = function(date, position) {
-             //position is negative for left, 0 for middle, 1 for right
-            //Common.stripTime(date);
-            //if (position < 0) {
-                //t.goToPx(-t.msToPx(date.getTime()));
-            //} else if (position > 0) {
-                //t.goToPx(-t.msToPx(date.getTime()) + t.visibleWidth);
-            //} else {
-                //t.goToPx(-t.msToPx(date.getTime()) + t.visibleWidth / 2);
-            //}
-        //};
-        // PRAGMA: CREATING THE NAVIGATION
-        // this is boring
         if (t.scrollable) {
           this.roll();
-            //t.leftControl = document.createElement('div');
-            //t.leftControl.className = 'chronoline-left';
-            //t.leftControl.style.marginTop = t.topMargin + 'px';
-
-            //var leftIcon = document.createElement('div');
-            //leftIcon.className = 'chronoline-left-icon';
-            //t.leftControl.appendChild(leftIcon);
-            //t.wrapper.appendChild(t.leftControl);
-            //var controlHeight = Math.max(t.eventsHeight, t.leftControl.clientHeight);
-            //t.leftControl.style.height = controlHeight + 'px';
-            //leftIcon.style.marginTop = (controlHeight - 15) / 2 + 'px';
-
-            //t.rightControl = document.createElement('div');
-            //t.rightControl.className = 'chronoline-right';
-            //t.rightControl.style.marginTop = t.topMargin + 'px';
-
-            //var rightIcon = document.createElement('div');
-            //rightIcon.className = 'chronoline-right-icon';
-            //t.rightControl.appendChild(rightIcon);
-            //t.wrapper.appendChild(t.rightControl);
-            //t.rightControl.style.height = t.leftControl.style.height;
-            //rightIcon.style.marginTop = leftIcon.style.marginTop;
-
-            //t.scrollLeftDiscrete = function(e) {
-                //t.goToDate(t.scrollLeft(new Date(t.pxToMs(-getLeft(t.paperElem)))), -1);
-                //return false;
-            //};
-
-            //t.scrollRightDiscrete = function(e) {
-                //t.goToDate(t.scrollRight(new Date(t.pxToMs(-getLeft(t.paperElem)))), -1);
-                //return false;
-            //};
-
-            //// TODO: continuous scroll
-            //// left and right are pretty much the same but need to be flipped
-            //if (t.continuousScroll) {
-                //t.isScrolling = false;
-                //t.timeoutId = -1;
-
-                //t.scrollLeftContinuous = function(timestamp) {
-                    //if (t.isScrolling) {
-                        //requestAnimationFrame(t.scrollLeftContinuous);
-                    //}
-                    //var finalLeft = t.continuousScrollSpeed * (timestamp - t.scrollStart) + t.scrollPaperStart;
-                    //t.goToPx(finalLeft, false, finalLeft > -t.msToPx(t.drawnStartMs));
-                //};
-
-                //t.endScrollLeft = function(e) {
-                    //clearTimeout(t.scrollTimeoutId);
-                    //if (t.toScrollDiscrete) {
-                        //t.toScrollDiscrete = false;
-                        //t.scrollLeftDiscrete();
-                    //}
-                    //t.isScrolling = false;
-                //};
-
-                //t.leftControl.onmousedown = function(e) {
-                    //t.toScrollDiscrete = true;
-                    //t.scrollPaperStart = getLeft(t.paperElem);
-                    //t.scrollTimeoutId = setTimeout(function() {
-                        //t.toScrollDiscrete = false; // switched is flipped
-                        //t.scrollStart = Date.now();
-                        //t.isScrolling = true; // whether it's currently moving
-                        //requestAnimationFrame(t.scrollLeftContinuous);
-                    //}, 200);
-                //};
-                //t.leftControl.onmouseup = t.endScrollLeft;
-                //t.leftControl.onmouseleave = t.endScrollLeft;
-
-
-                //t.scrollRightContinuous = function(timestamp) {
-                    //if (t.isScrolling) {
-                        //requestAnimationFrame(t.scrollRightContinuous);
-                    //}
-                    //var finalLeft = t.continuousScrollSpeed * (t.scrollStart - timestamp) + t.scrollPaperStart;
-                    //t.goToPx(finalLeft, false, finalLeft - t.visibleWidth < -t.msToPx(t.drawnEndMs));
-                //};
-
-                //t.endScrollRight = function(e) {
-                    //clearTimeout(t.scrollTimeoutId);
-                    //if (t.toScrollDiscrete) {
-                        //t.toScrollDiscrete = false;
-                        //t.scrollRightDiscrete();
-                    //}
-                    //t.isScrolling = false;
-                //};
-
-                //t.rightControl.onmousedown = function(e) {
-                    //t.toScrollDiscrete = true;
-                    //t.scrollPaperStart = getLeft(t.paperElem);
-                    //t.scrollTimeoutId = setTimeout(function() {
-                        //t.toScrollDiscrete = false; // switched is flipped
-                        //t.scrollStart = Date.now();
-                        //t.isScrolling = true; // whether it's currently moving
-                        //requestAnimationFrame(t.scrollRightContinuous);
-                    //}, 500);
-                //};
-                //t.rightControl.onmouseup = t.endScrollRight;
-                //t.rightControl.onmouseleave = t.endScrollRight;
-
-            //} else { // just hook up discrete scrolling
-                //t.leftControl.onclick = t.scrollLeftDiscrete;
-                //t.rightControl.onclick = t.scrollLeftDiscrete;
-            //}
-
         }
 
         // ENABLING DRAGGING
