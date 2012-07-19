@@ -22,7 +22,7 @@ function addElemClass(paperType, node, newClass) {
     if (paperType == 'SVG') {
         node.setAttribute('class', newClass);
     } else {
-        node.className += ' ' + newClass
+        node.className += ' ' + newClass;
     }
 }
 
@@ -114,7 +114,7 @@ var Chronoline = {
         // the left margin of timeline, to make enough space to show label
         leftMargin: 25,
         // the margin of x, y axis, to make begining and end last labels have enough space
-        hashMargin: 15,
+        hashMargin: 25,
         // overhead space on the canvas. useful for additional content
         eventHeight: 5,
         // how tall event events are
@@ -369,10 +369,10 @@ var Chronoline = {
   // PRAGMA: drawing events
   // dependecy: base unit for timeline, e.g: t.intervalX, t.intervalY
   drawEvents: function(t) {
-    var elem; // variable for add qtip
+    var elem, upperY; // variable for add qtip
     if (t.mode == CHRONOLINE_MODE.MONTH_YEAR) {
     for (var row = 0; row < t.eventRows.length; row++) {
-        var upperY = t.totalHeight - t.dateLabelHeight - (row + 1) * (t.eventMargin + t.eventHeight);
+        upperY = t.totalHeight - t.dateLabelHeight - (row + 1) * (t.eventMargin + t.eventHeight);
         for (var col = 0; col < t.eventRows[row].length; col++) {
             event = t.eventRows[row][col];
             var startX;
@@ -436,107 +436,82 @@ var Chronoline = {
         }
         labels[events[i].timestamp].events.push(events[i]);
       }
+      //var title, set;
       var title;
+      var folderClickHandler = function () {
+            // TODO: pop up and show all events
+            console.log('folder');
+          };
       for(var key in labels) {
         if(labels[key].count > 1) {
-          //TODO: draw folder
+          // draw folder
           folderHeight = 25;
           radius = 12;
           event = labels[key].events[0];
-          posY =  t.dateLineY - (event.dates[0].getHours() + 1) * t.intervalY;
+          // calculate position
+          posY =  t.dateLineY - event.dates[0].getHours() * t.intervalY - t.hashMargin - (folderHeight / 2);
           posX = t.dateLineX + folderHeight + (event.dates[0].getMinutes() * t.intervalX);
           elem = t.paper.rect(posX, posY,  folderHeight, folderHeight, 2).attr({
             fill: '270-#ffffff:0-#979CA0',
             stroke: "none",
             cursor: 'pointer'
           });
-          elem.click(function () {
-            // TODO: pop up and show all events
-            console.log('folder');
-          });
-          firstThirdEvents = [];
-          for (i = 0; i < labels[key].events.length; i += 1) {
-            if (i===3) break;
-            firstThirdEvents.push( labels[key].events[i]);
-          }
-          rightX = posX + folderHeight;
-          bottomY = posY + folderHeight;
-          leftX = rightX - t.icon.width;
-          upperY = bottomY - t.icon.height;
-          for(i = firstThirdEvents.length - 1; i >= 0; i -=1) {
-            evt = firstThirdEvents[i];
-            event_img = t.paper.image(evt.icon, leftX, upperY,  t.icon.width + 1, t.icon.height + 1).attr({
-              cursor: 'pointer',
-              opacity: 1 - (i*0.1)
-            });
-            leftX = leftX - (t.icon.width / 3)
-            upperY = upperY - (t.icon.height / 3); 
-          }
-          badgePosX = posX + folderHeight + 4;
+          elem.blur(1);
+          elem.click(folderClickHandler);
+          badgePosX = posX + folderHeight + 2;
           badgeRadius = 7;
-            circle = t.paper.circle(badgePosX, posY - 8,  badgeRadius + 2).attr({
-              fill: '#fff',
-              stroke: "none"
-            });
-            circle = t.paper.circle(badgePosX, posY - 8,  badgeRadius).attr({
-              fill: '270-#fff:0-#f00:60',
-              "fill-opacity": 0.9,
-              stroke: "none"
-            });
+          circle = t.paper.circle(badgePosX, posY - 8,  badgeRadius + 2).attr({
+            fill: '#fff',
+            stroke: "none"
+          });
+          circle = t.paper.circle(badgePosX, posY - 8,  badgeRadius).attr({
+            fill: '270-#fff:0-#f00:60',
+            "fill-opacity": 0.9,
+            stroke: "none"
+          });
 
           badge = t.paper.text(badgePosX, posY - 8, labels[key].count).attr({
               fill: '#fff',
               'font-size': 12
-        });
+          });
           title = "Folder[" +  ChromeHistory.formatDate(event.dates[0]) + "]";
         } else {
           // TODO: draw event
-            event = labels[key].events[0];
-            title = event.title;
-            radius = 7;
-            posY =  t.dateLineY - (event.dates[0].getHours() + 1) * t.intervalY;
-            posX = t.dateLineX + t.icon.height + (event.dates[0].getMinutes() * t.intervalX);
-            // background
-            rect = t.paper.rect(posX - 2, posY - 2,  t.icon.width + 4, t.icon.height + 4, 2).attr({
-              fill: '#bcbcbc',
-              "fill-opacity": 0.9,
-              stroke: "none"
-            });
+          event = labels[key].events[0];
+          title = event.title;
+          radius = 7;
+          // calculate position
+          posY =  t.dateLineY - event.dates[0].getHours() * t.intervalY - t.hashMargin - (t.icon.height / 2);
+          posX = t.dateLineX + t.icon.width + (event.dates[0].getMinutes() * t.intervalX);
 
-            rect = t.paper.rect(posX - 1, posY - 1,  t.icon.width + 2, t.icon.height + 2, 2).attr({
-              fill: '270-#ffffff:0-#bcbcbc',
-              stroke: "none"
-            });
+          elem = t.paper.image(event.icon, posX, posY,  t.icon.width, t.icon.height).attr({
+            cursor: 'pointer'
+          });
 
-            elem = t.paper.image(event.icon, posX, posY,  t.icon.width, t.icon.height).attr({
-              cursor: 'pointer'
-            });
-
-            circle = t.paper.circle(posX + t.icon.width + 4, posY - 8,  radius + 2).attr({
-              fill: '#fff',
-              stroke: "none"
-            });
-            circle = t.paper.circle(posX + t.icon.width + 4, posY - 8,  radius).attr({
-              fill: '270-#fff:0-#f00:60',
-              "fill-opacity": 0.9,
-              stroke: "none"
-            });
-            badge = t.paper.text(posX + t.icon.width + 4, posY - 8, event.count ? event.count : 1).attr({
-              fill: '#fff',
-              'font-size': 12
-            });
+          circle = t.paper.circle(posX + t.icon.width + 2, posY - 4,  radius + 2).attr({
+            fill: '#fff',
+            stroke: "none"
+          });
+          circle = t.paper.circle(posX + t.icon.width + 2, posY - 4,  radius).attr({
+            fill: '270-#fff:0-#f00:60',
+            "fill-opacity": 0.9,
+            stroke: "none"
+          });
+          badge = t.paper.text(posX + t.icon.width + 2, posY - 4, event.count ? event.count : 1).attr({
+            fill: '#fff',
+            'font-size': 12
+          });
         }
       //elem.attr(event.attrs);
       addElemClass(t.paperType, elem.node, 'chronoline-event');
       elem.attr('title', title);
       if (t.tooltips && !jQuery.browser.msie) {
           var description = elem.description;
-          title = elem.title;
           if (typeof description === "undefined" || description === '') {
-              description = title;
+              description = elem.title;
               title = '';
           }
-          jQuery(elem.node).parent().qtip({
+          jQuery(elem).parent().qtip({
               content: {
                   title: title,
                   text: description
@@ -552,7 +527,7 @@ var Chronoline = {
                   }
               },
               show: {
-                delay: 1000
+                delay: 200
               },
               hide: {
                 fixed: false // Helps to prevent the tooltip from hiding ocassionally when tracking!
@@ -563,64 +538,6 @@ var Chronoline = {
           });
       }
     }
-      //for (i = 0; i < t.events.length; i += 1) {
-        //event = t.events[i];
-        ////var time = event.dates[0].getHours() * 60 + event.dates[0].getMinutes();
-        //posY =  t.dateLineY - event.dates[0].getHours() * t.intervalY;
-        //if (event.icon) {
-            //var radius = 8;
-            ////upperY = upperY - t.icon.height - t.eventMargin - 10 - (radius / 2);
-            //posX = t.dateLineX + t.icon.height + (event.dates[0].getMinutes() * t.intervalX);
-            //elem = t.paper.image(event.icon, posX, posY,  t.icon.width, t.icon.height);
-            //circle = t.paper.circle(posX + t.icon.width + 4, posY - 8,  radius).attr({
-              //fill: '#979CA0',
-              //stroke: "none"
-            //});
-            //badge = t.paper.text(posX + t.icon.width + 4, posY - 8, event.count ? event.count : 1).attr({
-              //fill: '#fff',
-              //'font-size': 12
-            //});
-        //} else {
-            ////elem = t.paper.circle(startX, upperY + t.circleRadius, t.circleRadius).attr(t.eventAttrs);
-        //}
-            //// TODO: create a function
-            //if (typeof event.attrs !== "undefined") {
-                //elem.attr(event.attrs);
-            //}
-            //addElemClass(t.paperType, elem.node, 'chronoline-event');
-
-            //elem.attr('title', event.title);
-            //if (t.tooltips && !jQuery.browser.msie) {
-                //var description = event.description;
-                //var title = event.title;
-                //if (typeof description === "undefined" || description === '') {
-                    //description = title;
-                    //title = '';
-                //}
-                //jQuery(elem.node).parent().qtip({
-                    //content: {
-                        //title: title,
-                        //text: description
-                    //},
-                    //position: {
-                        //my: 'top left',
-                        //target: 'mouse',
-                        //viewport: jQuery(window),
-                        //// Keep it on-screen at all times if possible
-                        //adjust: {
-                            //x: 10,
-                            //y: 10
-                        //}
-                    //},
-                    //hide: {
-                        //fixed: true // Helps to prevent the tooltip from hiding ocassionally when tracking!
-                    //},
-                    //style: {
-                        //classes: 'ui-tooltip-shadow ui-tooltip-dark ui-tooltip-rounded'
-                    //}
-                //});
-            //}
-      //}
     }
 
   },

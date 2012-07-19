@@ -10,7 +10,8 @@
       chrome.history.search({
           'text': text,
           'startTime': date.getTime(),
-          'endTime': date.getTime() + DAY_IN_MILLISECONDS
+          'endTime': date.getTime() + DAY_IN_MILLISECONDS,
+          'maxResults': MAX_RESULT
         },  
         function(historyItems){
           var queue = []; // queue for the history item need to update visitTime
@@ -146,8 +147,32 @@
           events.sort(Common.sortByTime);
           Common.filter(events, {startTime: date.getTime(), endTime: (date.getTime() + DAY_IN_MILLISECONDS)});
           timeline = Chronoline.create(document.getElementById("timeline-chart"), events, timeline_config);
+          ChromeHistory.drawIconCloud();
         };
       });    
+    },
+
+    drawIconCloud: function() {
+      $("#icon").append($("<div id='icons_list'></div>"));
+      ulElem = $('<ul>');
+      ChromeHistory.historyItems.forEach(function(e) {
+        liElem = $('<li>');
+        aElem = $('<a>');
+        aElem.attr({href: e.url, target: '_blank'});
+        img = $('<img>');
+        img.attr('src', 'chrome://favicon/' + e.url);
+        aElem.append(img);
+        liElem.append(aElem);
+        ulElem.append(liElem);
+      });
+      $("#icons_list").append(ulElem);
+      $('#iconCanvas').tagcanvas({
+        textColour: '#ff0000',
+        outlineColour: '#ff00ff',
+        reverse: true,
+        depth: 0.8,
+        maxSpeed: 0.05
+      }, 'icons_list');
     },
 
     formatDate: function(date){
@@ -275,16 +300,13 @@ $(document).ready(function() {
       });
     var dateStr = ($("#timeline-date").val() === "") ? $("#timeline-date").attr("placeholder") : $("#timeline-date").val();
     var date = new Date(dateStr);
-    var allHistoryItems = [];
     ChromeHistory.buttonSearch(types, keyword, date, displaySearchHistoryResult);
   });
   var height = window.screen.height;
   $("#timeline, #search").css('height', height / 2);
   $("#icon, #result").css('height', height - $("#timeline").height());
   var topMargin = (height / 2) - 80;
-  // FIXME: now, I need to set up the previous date for developemnt
-  //var today = new Date();
-  var today = new Date("2012/07/10");
+  var today = new Date();
   Common.stripTime(today);
   var timeline_config = {
     animated: true,
